@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /news/Sports/article/
+Disallow: /search
+Disallow: /news/search
+Disallow: /news/View
+Disallow: /news/dongaars
+Disallow: /NEWS
+Disallow: /HUB
+Disallow: /VOICE
+Disallow: /ISSUE
+Disallow: /BIZN
+Disallow: /STUDIO
+Disallow: /SPORTS
+Disallow: /VODA
+Disallow: /WEEKLY
+Disallow: /WOMAN
+Disallow: /SHINDONGA
+
