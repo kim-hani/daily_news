@@ -48,7 +48,7 @@
 | T-021 | SentenceSplitter | G7 | Yes | Done | `SentenceSplitterTest` 7개 통과(다·요·?·! 뒤 공백, 굽은/곧은 따옴표 안에서는 안 나눔, 닫는 따옴표로 끝나는 문장, 소수점·날짜, U.S.·Mr.·이니셜, 작은따옴표 인용과 영문 아포스트로피 구분) |
 | T-022 | LeadSummarizer | G7 | Yes | Done | `LeadSummarizerTest` 19개 통과(fixture 6개 모두 BODY·200자 이하·크레디트/이메일/저작권 없음, **SC5: 요약 각 문장이 정제 본문의 부분 문자열**, 120자/3문장 규칙, 200자 초과 시 마지막 문장 제거, 긴 첫 문장은 199자+`…`, `(서울=뉴스1) … 기자 =`·`[언론사]`·이메일 제거와 `▶`·`ⓒ`·무단 전재 문단 제거, 본문 40자 미만이면 RSS, 둘 다 없으면 NONE). 언론사별 패턴 외에 일반 크레디트 패턴 `(지역=언론사) … 기자 =`도 적용. fixture에서 **연합 크레디트가 기자 2명(`김효정 전명훈 기자 =`)이라 기존 패턴이 못 지우는 문제**를 발견해 `sources.yml` 패턴을 `[^=]{0,40}?(기자|특파원)`로 넓힘. RSS 설명문은 끝이 잘린 조각(`...`, `···`)을 다른 문장이 있으면 쓰지 않음 |
 | T-023 | SummaryService(본문 요청→요약 연결) | G7 | Yes | Done | `SummaryServiceTest` 3개 통과(정상 기사는 BODY, 404·robots 차단(연합 `/view/AEN…`)은 RSS 대체, bodyOk 2·bodyFallback 2, 사안·순서 유지, 원문 요청 수 ≤ 선정 기사 수, 차단 URL은 요청 안 함). 결과는 `SummaryService.Result(sections, bodyOk, bodyFallback)`. 본문을 못 찾으면 selector와 함께 WARN 로그(사이트 구조 변경 감지용) |
-| T-024 | KeywordExtractor | G8 | Yes | Todo | |
+| T-024 | KeywordExtractor | G8 | Yes | Done | `KeywordExtractorTest` 5개 통과(빈도순·동률이면 고유명사 다음 가나다순, 불용어 대소문자 무시, 한 제목 안 중복은 1회, 최대 limit개, 실제 KOMORAN으로 "반도체"가 1위·불용어 "기자"와 말머리 "속보" 제외). plan 대비: 빈도는 **명사가 나온 제목 수**로 셈(한 제목에서 반복된 명사가 부풀리지 않게). 입력 제목은 `TitleNormalizer.clean()`(대소문자 유지)을 써서 "AI" 같은 영문 키워드가 소문자로 바뀌지 않게 함. 테스트를 위해 명사 추출 함수를 생성자로 주입(앱에서는 `KomoranAnalyzer::nouns`) |
 | T-025 | OutputPaths·MarkdownRenderer | G9 | Yes | Todo | |
 | T-026 | Thymeleaf 템플릿·CSS·HtmlRenderer | G9 | Yes | Todo | |
 | T-027 | RetentionCleaner(30일 보관) | G9 | Yes | Todo | |
