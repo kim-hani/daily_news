@@ -11,4 +11,8 @@ import java.time.ZonedDateTime;
  */
 public record Article(Source source, Category category, String title, URI url,
                       ZonedDateTime publishedAt, String rssDescription) {
+
+    public Article withUrl(URI newUrl) {
+        return new Article(source, category, title, newUrl, publishedAt, rssDescription);
+    }
 }
