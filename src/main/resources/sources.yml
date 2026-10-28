@@ -1,0 +1,54 @@
+# Daily News 설정. 코드 수정 없이 언론사·피드·보관 기간을 바꿀 수 있다(US8, FR-2.4, FR-7.5).
+# 다른 파일로 바꾸려면: ./gradlew run --args="--config path/to/sources.yml"
+
+userAgent: "DailyNewsBot/1.0 (+https://github.com/kim-hani/daily_news)"
+requestDelayMillis: 1000      # 같은 호스트에 연속 요청할 때 간격
+timeoutSeconds: 10
+windowHours: 24               # 최근 몇 시간 안의 기사만 쓸지
+perCategory: 5                # 카테고리별 선정 기사 수
+clusterThreshold: 0.4         # 같은 사안으로 묶는 제목 유사도 기준(0 초과 1 이하)
+
+retention:
+  siteArchiveDays: 30         # 웹 날짜별 페이지 보관 일수(실행일 포함)
+  newsDays: 0                 # Markdown 보관 일수, 0 = 무기한(삭제 안 함)
+
+# 피드 키는 POLITICS, SOCIETY, ECONOMY, IT, GLOBAL 중 하나다.
+# 서울신문은 robots.txt가 RSS 경로(/xml/)를 막고 있어 제외했다(spec C4).
+sources:
+  - id: yonhap
+    name: 연합뉴스
+    bodySelector: "div.story-news.article > p"
+    creditPatterns:
+      - '^\(.+?=연합뉴스\)\s*\S+\s*(기자|특파원)\s*=\s*'
+    feeds:
+      POLITICS: https://www.yna.co.kr/rss/politics.xml
+      SOCIETY: https://www.yna.co.kr/rss/society.xml
+      ECONOMY: https://www.yna.co.kr/rss/economy.xml
+      IT: https://www.yna.co.kr/rss/industry.xml
+      GLOBAL: https://www.yna.co.kr/rss/international.xml
+    itKeywordFilterFeeds: [IT]          # 산업 피드는 IT 키워드가 맞는 기사만 사용(FR-3.3)
+
+  - id: donga
+    name: 동아일보
+    bodySelector: "section.news_view"
+    feeds:
+      POLITICS: https://rss.donga.com/politics.xml
+      SOCIETY: https://rss.donga.com/national.xml
+      ECONOMY: https://rss.donga.com/economy.xml
+      IT: https://rss.donga.com/science.xml
+      GLOBAL: https://rss.donga.com/international.xml
+
+  - id: khan
+    name: 경향신문
+    bodySelector: "div#articleBody p.content_text"
+    feeds:
+      POLITICS: https://www.khan.co.kr/rss/rssdata/politic_news.xml
+      SOCIETY: https://www.khan.co.kr/rss/rssdata/society_news.xml
+      ECONOMY: https://www.khan.co.kr/rss/rssdata/economy_news.xml
+      IT: https://www.khan.co.kr/rss/rssdata/science_news.xml
+      GLOBAL: https://www.khan.co.kr/rss/rssdata/kh_world.xml
+
+itKeywords: [AI, 인공지능, 반도체, 통신, 5G, 6G, 플랫폼, 앱, 소프트웨어, 보안, 해킹, 클라우드, 데이터센터,
+             게임, 로봇, 우주, 배터리, 디스플레이, 네이버, 카카오, 삼성전자, SK하이닉스]
+
+stopwords: [기자, 오늘, 내일, 올해, 지난해, 관련, 대통령실, 정부]   # 키워드 불용어(조정 가능)
