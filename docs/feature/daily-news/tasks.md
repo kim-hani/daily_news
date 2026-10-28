@@ -1,6 +1,7 @@
 # Daily News — 작업 목록 (Tasks)
 
 > 기준: [`spec.md`](./spec.md), [`plan.md`](./plan.md) · 브랜치: `feature/daily-news` · 작성일: 2026-10-28
+> 구현 결과·전체 흐름도: [`implementation.md`](./implementation.md) · GitHub 설정: [`setup-guide.md`](./setup-guide.md)
 
 ## Summary
 | 그룹 | 이름 | 작업 범위 | 복잡도 | 작업 수 |
