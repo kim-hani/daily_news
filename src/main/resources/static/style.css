@@ -156,7 +156,7 @@ blockquote .origin { margin-top: 4px; color: var(--muted); font-size: 0.8rem; }
 .url a { color: var(--muted); overflow-wrap: anywhere; word-break: break-all; }
 
 .related { margin: 6px 0 0; font-size: 0.9rem; color: var(--muted); }
-.related a + a::before { content: " · "; color: var(--muted); }
+.related a + a::before { content: "·"; display: inline-block; margin: 0 6px; color: var(--muted); }  /* inline-block: 밑줄 제외 */
 
 .note { color: var(--muted); }
 .month h2 { font-size: 1.1rem; margin: 20px 0 6px; }

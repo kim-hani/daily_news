@@ -9,7 +9,9 @@ import dailynews.http.JdkHttpFetcher;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,9 +58,11 @@ public final class DailyNewsApp {
                 .exitCode();
     }
 
-    /** User-Agent·타임아웃·재시도를 갖춘 요청기를 호스트별 간격 데코레이터로 감싼다. */
+    /** User-Agent·타임아웃·재시도를 갖춘 요청기를 호스트별 간격 데코레이터로 감싼다(호스트별 간격은 설정의 hostDelayMillis). */
     static HttpFetcher networkFetcher(AppConfig config) {
         HttpFetcher http = new JdkHttpFetcher(config.userAgent(), Duration.ofSeconds(config.timeoutSeconds()));
-        return new HostThrottle(http, Duration.ofMillis(config.requestDelayMillis()));
+        Map<String, Duration> hostDelays = config.hostDelayMillis().entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, entry -> Duration.ofMillis(entry.getValue())));
+        return new HostThrottle(http, Duration.ofMillis(config.requestDelayMillis()), hostDelays);
     }
 }

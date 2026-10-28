@@ -12,23 +12,32 @@ import java.util.Map;
 
 /**
  * 같은 호스트에 연속으로 요청할 때 간격을 두는 {@link HttpFetcher} 데코레이터(NFR-3).
- * 간격은 직전 요청이 끝난 시각부터 잰다. 요청은 순차로 보낸다는 전제라 스레드 안전하지 않다.
+ * 간격은 직전 요청이 끝난 시각부터 잰다. 호스트별로 다른 간격을 줄 수 있다(예: 빈도 제한이 엄한 사이트).
+ * 요청은 순차로 보낸다는 전제라 스레드 안전하지 않다.
  */
 public final class HostThrottle implements HttpFetcher {
 
     private final HttpFetcher delegate;
-    private final Duration delay;
+    private final Duration defaultDelay;
+    private final Map<String, Duration> hostDelays;
     private final Clock clock;
     private final Sleeper sleeper;
     private final Map<String, Instant> lastRequestEnd = new HashMap<>();
 
-    public HostThrottle(HttpFetcher delegate, Duration delay) {
-        this(delegate, delay, Clock.systemUTC(), Sleeper.SYSTEM);
+    public HostThrottle(HttpFetcher delegate, Duration defaultDelay) {
+        this(delegate, defaultDelay, Map.of());
     }
 
-    HostThrottle(HttpFetcher delegate, Duration delay, Clock clock, Sleeper sleeper) {
+    /** @param hostDelays 소문자 호스트 → 간격. 없는 호스트는 {@code defaultDelay} */
+    public HostThrottle(HttpFetcher delegate, Duration defaultDelay, Map<String, Duration> hostDelays) {
+        this(delegate, defaultDelay, hostDelays, Clock.systemUTC(), Sleeper.SYSTEM);
+    }
+
+    HostThrottle(HttpFetcher delegate, Duration defaultDelay, Map<String, Duration> hostDelays, Clock clock,
+                 Sleeper sleeper) {
         this.delegate = delegate;
-        this.delay = delay;
+        this.defaultDelay = defaultDelay;
+        this.hostDelays = Map.copyOf(hostDelays);
         this.clock = clock;
         this.sleeper = sleeper;
     }
@@ -49,6 +58,7 @@ public final class HostThrottle implements HttpFetcher {
         if (last == null) {
             return;
         }
+        Duration delay = hostDelays.getOrDefault(host, defaultDelay);
         Duration remaining = delay.minus(Duration.between(last, clock.instant()));
         if (remaining.isNegative() || remaining.isZero()) {
             return;

@@ -89,7 +89,8 @@ public final class RssParser {
     }
 
     private static URI toHttpUri(String link) {
-        String text = clean(link);
+        // 경로에 공백이 그대로 든 링크가 있다(예: 동아일보 /news/K-TECH Global Leaders/…).
+        String text = clean(link).replace(" ", "%20");
         if (text.isEmpty()) {
             return null;
         }

@@ -57,6 +57,22 @@ class StoryRankerTest {
     }
 
     @Test
+    void 속보는_같은_사안에_다른_기사가_있으면_대표가_되지_않는다() {
+        Article flash = article(YONHAP, Category.GLOBAL, "[속보] 스페인서 열차 충돌", "https://www.yna.co.kr/view/1", at(18, 0));
+        Article full = article(DONGA, Category.GLOBAL, "스페인 열차 충돌…최소 10명 사망", "https://www.donga.com/news/1",
+                at(18, 40));
+        Article yonhapFull = article(YONHAP, Category.GLOBAL, "스페인 열차 2대 충돌(종합)", "https://www.yna.co.kr/view/2",
+                at(19, 0));
+
+        Story story = ranker.toStory(new ArticleCluster(Category.GLOBAL, List.of(flash, full, yonhapFull)), NOW);
+
+        assertThat(story.representative()).isEqualTo(full);
+        assertThat(story.related()).containsExactly(yonhapFull);
+        assertThat(ranker.toStory(new ArticleCluster(Category.GLOBAL, List.of(flash)), NOW).representative())
+                .isEqualTo(flash);
+    }
+
+    @Test
     void 보도_시각이_같으면_설정의_언론사_순서로_대표를_정한다() {
         Article khan = article(KHAN, Category.POLITICS, "가", "https://www.khan.co.kr/article/1", at(8, 0));
         Article donga = article(DONGA, Category.POLITICS, "가", "https://www.donga.com/news/1", at(8, 0));

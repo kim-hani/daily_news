@@ -101,6 +101,14 @@ class LeadSummarizerTest {
     }
 
     @Test
+    void 글자가_10자_미만인_RSS_설명문은_요약으로_쓰지_않는다() {
+        // 연합뉴스 속보: 본문 문단이 비어 있고 RSS 설명문은 "(" 한 글자다(2026-10-28 실제 데이터).
+        Summary summary = summarizer.summarize(List.of(), "(", YONHAP);
+
+        assertThat(summary.origin()).isEqualTo(SummaryOrigin.NONE);
+    }
+
+    @Test
     void 본문과_RSS가_모두_없으면_요약_없음이다() {
         Summary summary = summarizer.summarize(List.of(), "", KHAN);
 

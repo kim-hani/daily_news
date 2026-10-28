@@ -5,6 +5,8 @@ userAgent: "DailyNewsBot/1.0 (+https://github.com/kim-hani/daily_news)"
 siteUrl: "https://kim-hani.github.io/daily_news/"        # GitHub Pages 주소(README에 표시)
 repositoryUrl: "https://github.com/kim-hani/daily_news"  # 아카이브 페이지의 Markdown 링크
 requestDelayMillis: 1000      # 같은 호스트에 연속 요청할 때 간격
+hostDelayMillis:              # 호스트별 간격(기본값보다 길게 둘 곳)
+  www.khan.co.kr: 10000       # 경향신문은 1초 간격 연속 요청에 403(빈도 제한)을 돌려줌(2026-10-28 확인)
 timeoutSeconds: 10
 windowHours: 24               # 최근 몇 시간 안의 기사만 쓸지
 perCategory: 5                # 카테고리별 선정 기사 수
@@ -41,6 +43,7 @@ sources:
       ECONOMY: https://rss.donga.com/economy.xml
       IT: https://rss.donga.com/science.xml
       GLOBAL: https://rss.donga.com/international.xml
+    itKeywordFilterFeeds: [IT]          # 과학 피드에 건강·의학 기사가 섞여 IT 키워드로 거름(T-034)
 
   - id: khan
     name: 경향신문
@@ -52,8 +55,12 @@ sources:
       ECONOMY: https://www.khan.co.kr/rss/rssdata/economy_news.xml
       IT: https://www.khan.co.kr/rss/rssdata/science_news.xml
       GLOBAL: https://www.khan.co.kr/rss/rssdata/kh_world.xml
+    itKeywordFilterFeeds: [IT]          # 과학 피드에 날씨 기사가 섞여 IT 키워드로 거름(T-034)
 
 itKeywords: [AI, 인공지능, 반도체, 통신, 5G, 6G, 플랫폼, 앱, 소프트웨어, 보안, 해킹, 클라우드, 데이터센터,
-             게임, 로봇, 우주, 배터리, 디스플레이, 네이버, 카카오, 삼성전자, SK하이닉스]
+             게임, 로봇, 우주, 배터리, 디스플레이, 네이버, 카카오, 삼성전자, SK하이닉스,
+             IT, 디지털, 인터넷, 스마트폰, 사이버, 양자, 휴머노이드, 챗GPT, 오픈AI, 엔비디아, 구글, 애플, 위성, 발사체]
 
-stopwords: [기자, 오늘, 내일, 올해, 지난해, 관련, 대통령실, 정부]   # 키워드 불용어(조정 가능)
+# 키워드 불용어(조정 가능). 매일 나오는 일반어는 T-034 실제 실행 결과를 보고 추가했다.
+stopwords: [기자, 오늘, 내일, 올해, 지난해, 관련, 대통령실, 정부,
+            대통령, 내년, 이번, 이날, 전날, 최근, 분기, 영업, 공개, 사진, 영상, 종합, 속보, 단독, 최대, 현장, 지원]

@@ -98,6 +98,18 @@ class RssParserTest {
     }
 
     @Test
+    void 링크_경로의_공백은_인코딩한다() throws RssParseException {
+        List<Article> articles = parse(item("""
+                <title>HD현대 실적</title>
+                <link>https://www.donga.com/news/K-TECH Global Leaders/article/all/20261028/134927659/1</link>
+                <pubDate>Wed, 28 Oct 2026 08:00:00 +0900</pubDate>
+                """));
+
+        assertThat(articles.getFirst().url()).isEqualTo(
+                URI.create("https://www.donga.com/news/K-TECH%20Global%20Leaders/article/all/20261028/134927659/1"));
+    }
+
+    @Test
     void description이_없으면_빈_문자열이다() throws RssParseException {
         List<Article> articles = parse(item("""
                 <title>기사</title><link>https://a.example.com/1</link>

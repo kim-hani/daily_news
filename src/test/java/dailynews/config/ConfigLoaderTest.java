@@ -67,6 +67,7 @@ class ConfigLoaderTest {
 
         assertThat(config.userAgent()).startsWith("DailyNewsBot/1.0");
         assertThat(config.requestDelayMillis()).isEqualTo(1000);
+        assertThat(config.hostDelayMillis()).containsEntry("www.khan.co.kr", 10000);
         assertThat(config.timeoutSeconds()).isEqualTo(10);
         assertThat(config.windowHours()).isEqualTo(24);
         assertThat(config.perCategory()).isEqualTo(5);
@@ -210,6 +211,9 @@ class ConfigLoaderTest {
                 Arguments.of("siteUrl이 http(s)가 아님",
                         VALID.replace("https://example.github.io/news/", "example.github.io/news"),
                         "siteUrl: http(s) URL만"),
+                Arguments.of("호스트별 간격 음수",
+                        VALID.replace("requestDelayMillis: 0", "requestDelayMillis: 0\nhostDelayMillis: {news.example.com: -1}"),
+                        "hostDelayMillis.news.example.com: 0 이상"),
                 Arguments.of("빈 파일", "", "설정이 비어 있습니다"));
     }
 

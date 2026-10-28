@@ -33,6 +33,11 @@ application {
     mainClass = 'dailynews.DailyNewsApp'
 }
 
+// Windows 콘솔 기본 인코딩(cp949)과 관계없이 로그의 한글을 UTF-8로 출력한다.
+tasks.named('run') {
+    jvmArgs '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8'
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }

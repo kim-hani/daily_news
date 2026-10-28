@@ -17,8 +17,9 @@ import java.util.Optional;
  * <ul>
  *   <li>점수 = 보도 언론사 수 × 10 + 최신성. 최신성은 가장 최근 기사 기준 {@code 1 − 경과시간/24h}(0~1)다.</li>
  *   <li>점수가 같으면 기사 수가 많은 쪽을 앞에 둔다.</li>
- *   <li>대표 기사는 가장 먼저 보도된 기사다. 시각이 같으면 설정의 언론사 순서를 따른다.</li>
- *   <li>같은 사안 링크는 대표 기사의 언론사를 뺀 언론사마다 가장 이른 기사 1건이다.</li>
+ *   <li>대표 기사는 가장 먼저 보도된 기사다. 시각이 같으면 설정의 언론사 순서를 따른다.
+ *       단 {@code [속보]} 기사는 본문이 거의 없으므로 같은 사안에 다른 기사가 있으면 대표로 고르지 않는다.</li>
+ *   <li>같은 사안 링크는 대표 기사의 언론사를 뺀 언론사마다 1건이다(고르는 기준은 대표와 같다).</li>
  * </ul>
  */
 public final class StoryRanker {
@@ -45,7 +46,8 @@ public final class StoryRanker {
     }
 
     public Story toStory(ArticleCluster cluster, ZonedDateTime now) {
-        Comparator<Article> earliest = Comparator.comparing(Article::publishedAt)
+        Comparator<Article> earliest = Comparator.comparing(StoryRanker::isBreakingFlash)
+                .thenComparing(Article::publishedAt)
                 .thenComparing(article -> order(article.source()))
                 .thenComparing(article -> article.url().toString());
         Article representative = cluster.articles().stream().min(earliest).orElseThrow();
@@ -74,6 +76,11 @@ public final class StoryRanker {
                 .max(Comparator.naturalOrder()).orElseThrow();
         double elapsed = (double) Duration.between(latest, now).toSeconds() / RECENCY_WINDOW.toSeconds();
         return Math.clamp(1 - elapsed, 0.0, 1.0);
+    }
+
+    /** 본문 없이 한 줄로 나가는 속보(실제 연합뉴스 속보는 본문 문단과 RSS 설명문이 비어 있다) */
+    private static boolean isBreakingFlash(Article article) {
+        return article.title().strip().startsWith("[속보]");
     }
 
     private int order(Source source) {

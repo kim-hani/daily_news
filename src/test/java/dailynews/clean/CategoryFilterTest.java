@@ -32,11 +32,11 @@ class CategoryFilterTest {
 
     @Test
     void 지정되지_않은_피드는_영향을_받지_않는다() {
-        Article dongaScience = article(DONGA, Category.IT, "철강업계 수출 부진", "https://www.donga.com/news/1", at(8, 0));
+        Article dongaEconomy = article(DONGA, Category.ECONOMY, "철강업계 수출 부진", "https://www.donga.com/news/1", at(8, 0));
         Article yonhapEconomy = article(YONHAP, Category.ECONOMY, "철강업계 수출 부진", "https://www.yna.co.kr/view/4",
                 at(8, 0));
 
-        assertThat(filter.filter(List.of(dongaScience, yonhapEconomy))).hasSize(2);
+        assertThat(filter.filter(List.of(dongaEconomy, yonhapEconomy))).hasSize(2);
     }
 
     @ParameterizedTest

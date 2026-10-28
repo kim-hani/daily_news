@@ -24,6 +24,8 @@ public final class LeadSummarizer {
     static final int TARGET_LENGTH = 120;
     static final int MAX_SENTENCES = 3;
     static final int MIN_BODY_LENGTH = 40;
+    /** 글자·숫자가 이보다 적은 요약은 쓰지 않는다(예: 연합뉴스 속보의 RSS 설명문은 "(" 한 글자다). */
+    static final int MIN_SUMMARY_LETTERS = 10;
 
     /** (서울=뉴스1) 홍길동 기자 = / (워싱턴=연합뉴스) 김동현 특파원 = / (세종=연합뉴스) */
     private static final Pattern GENERIC_CREDIT =
@@ -89,7 +91,7 @@ public final class LeadSummarizer {
         if (dropTruncatedTail && sentences.size() > 1 && TRUNCATED.matcher(sentences.getLast()).find()) {
             sentences.removeLast();
         }
-        if (sentences.isEmpty()) {
+        if (letters(String.join("", sentences)) < MIN_SUMMARY_LETTERS) {
             return List.of();
         }
 
@@ -116,5 +118,9 @@ public final class LeadSummarizer {
 
     private static int length(String text) {
         return text.codePointCount(0, text.length());
+    }
+
+    private static long letters(String text) {
+        return text.codePoints().filter(Character::isLetterOrDigit).count();
     }
 }
