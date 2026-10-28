@@ -33,9 +33,9 @@
 | T-006 | HttpFetcher·JdkHttpFetcher·FakeHttpFetcher | G3 | Yes | Done | `FakeHttpFetcherTest` 4개(200·404·500·예외·fixture), `JdkHttpFetcherTest` 7개(로컬 `HttpServer`: UA, 리다이렉트, 5xx·시간 초과 1회 재시도, 4xx 미재시도) 통과. 재시도 전 1초 대기(`Sleeper` 주입, 같은 서버에 바로 재요청하지 않도록). 4xx·5xx는 예외 없이 `FetchResult`로, 연결 실패·시간 초과는 `IOException`으로 구분 |
 | T-007 | HostThrottle(호스트별 요청 간격) | G3 | Yes | Done | `HostThrottleTest` 5개 통과(같은 호스트 지연, 다른 호스트 무지연, 남은 시간만 대기, 호스트 대소문자 무시, 실패 요청 뒤에도 간격 유지). 간격은 직전 요청이 **끝난** 시각부터 잼. 순차 요청 전제라 스레드 안전하지 않음(문서화) |
 | T-008 | RobotsPolicy(robots.txt 준수) | G3 | Yes | Done | `RobotsRulesTest` 13개(최장 일치, 동률 시 Allow, `*`·`$`, 다중 UA 그룹, `*` 그룹 병합, 빈 줄, `Disallow :`, 대소문자, BOM), `RobotsPolicyTest` 11개 통과. 실제 robots.txt 5개(연합·동아·rss.donga·경향·서울, 2026-10-28 수집)를 `fixtures/robots/`에 저장해 검증하고, 기본 설정 피드 15개가 모두 허용되는지도 확인. plan 대비: 404뿐 아니라 **4xx 전체를 전부 허용**으로 처리(RFC 9309 기준). 규칙 해석은 `RobotsRules`(package-private)로 분리. `*` 그룹만 보고 봇 이름별 그룹은 무시(plan대로), 퍼센트 인코딩은 정규화 없이 그대로 비교 |
-| T-009 | 테스트 fixture 수집 | G4 | Yes | Todo | |
-| T-010 | RssParser(날짜·CDATA 처리) | G4 | Yes | Todo | |
-| T-011 | FeedCollector(실패 피드 skip) | G4 | Yes | Todo | |
+| T-009 | 테스트 fixture 수집 | G4 | Yes | Done | 정치 피드 RSS 3개(앞 item 15개만 남김)와 기사 HTML 6개(본문 컨테이너의 앞 4문단과 잡음 요소만 남김, 4~5KB), robots.txt 5개(T-008), `fixtures/README.md`(출처·수집일·축소 방식) 저장. `FixturesTest` 18개 통과(UTF-8 디코딩, item 10개 이상). 공통 헬퍼 `Fixtures`를 추가하고 `FakeHttpFetcher`가 이를 쓰도록 정리. **리스크**: 경향 기사 페이지는 1초 간격 연속 요청에 403을 돌려주고 1~2분 뒤 풀림(빈도 제한). 운영 시 경향 본문이 RSS 요약으로 대체될 수 있음 → T-034에서 호스트별 간격 조정 검토. 참고: 동아 본문은 `<p>` 없이 텍스트+`<br>`, 경향 첫 문단은 소제목(`b.strapline`)이라 G7에서 처리 필요 |
+| T-010 | RssParser(날짜·CDATA 처리) | G4 | Yes | Done | `RssParserTest` 10개 통과(fixture 3종 건수 15·첫 item 제목/링크/KST 시각, 경향 `dc:date`, 동아 description HTML 제거, UTC→KST, CDATA 공백·줄바꿈 정리, 날짜·제목·링크 누락/오류 item 건너뜀, 깨진 XML·HTML 응답은 `RssParseException`). 링크는 원본 그대로 넘기고(경향 utm 포함) 정규화는 T-012에서. `javascript:` 등 http(s)가 아닌 링크도 여기서 건너뜀. 공백 정리는 NBSP 포함 |
+| T-011 | FeedCollector(실패 피드 skip) | G4 | Yes | Done | `FeedCollectorTest` 6개 통과(정상 225건·카테고리별 45건, 언론사×카테고리 순서, 500 피드 1개만 실패 기록, 연결 실패·HTML 응답도 해당 피드만 건너뜀, robots 차단 피드는 요청 없이 실패 기록, 전부 실패 시 기사 0건·실패 15건). 결과는 `CollectResult(articles, failedFeeds)`, 실패 피드는 `yonhap/POLITICS` 형식. 로그: 피드별 건수 INFO, 실패 사유 WARN, 합계 INFO(NFR-8). 전부 실패 시 종료 코드 1 처리는 T-030에서 |
 | T-012 | UrlNormalizer | G5 | Yes | Todo | |
 | T-013 | TitleNormalizer | G5 | Yes | Todo | |
 | T-014 | ArticleCleaner(24h·중복 제거) | G5 | Yes | Todo | |
