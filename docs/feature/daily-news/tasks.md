@@ -54,9 +54,9 @@
 | T-027 | RetentionCleaner(30일 보관) | G9 | Yes | Done | `RetentionCleanerTest` 5개 통과(31개 중 가장 오래된 1개만 삭제·30일째 보존, 패턴 외·잘못된 날짜·미래 날짜·하위 폴더 보존, `newsDays: 0`이면 Markdown 보존, `newsDays > 0`이면 Markdown 삭제와 빈 월·연 폴더 정리, 폴더가 없어도 동작). 삭제 목록은 INFO 로그 |
 | T-028 | ArchiveRenderer | G9 | Yes | Done | `ArchiveRendererTest` 3개 통과(서로 다른 월 3개 파일 → 연월 그룹 2개·최신순, 패턴 외 파일 제외, 보관 정리로 지운 날짜는 목록에 없음, 30일 이전은 저장소 Markdown 아카이브(`repositoryUrl/tree/main/news`)로 안내). 설정에 `repositoryUrl` 추가 |
 | T-029 | ReadmeUpdater·README 초안 | G9 | Yes | Done | `ReadmeUpdaterTest` 5개 통과(마커 안만 교체, 마커 없으면 끝에 추가, 두 번 실행해도 동일(멱등), 날짜·웹 주소·Markdown 링크·선정 건수·키워드 포함, README가 없으면 생성). 저장소 루트 `README.md` 초안(소개, 웹 주소, 마커, 동작 방식, 실행 방법, 문서 링크) 작성. 설정에 `siteUrl` 추가(`https://kim-hani.github.io/daily_news/`) |
-| T-030 | DailyNewsApp CLI·파이프라인 조립 | G10 | Yes | Todo | |
-| T-031 | PipelineIntegrationTest | G10 | Yes | Todo | |
-| T-032 | 장애 시나리오 테스트 | G10 | Yes | Todo | |
+| T-030 | DailyNewsApp CLI·파이프라인 조립 | G10 | Yes | Done | `CliOptionsTest` 3개 + `DailyNewsAppTest` 5개 통과(기본값·모든 옵션 파싱, 알 수 없는 옵션·값 없는 옵션·잘못된 날짜 → 사용법 로그와 종료 코드 1, 설정 파일 없음·잘못된 값 → 1, `--dry-run`이면 파일 0개, `--date` 경로, 날짜 생략 시 실행일 KST). 구조: `DailyNewsApp`(옵션·설정·종료 코드) → `DailyNewsPipeline`(생성자에 `AppConfig`·`HttpFetcher`·`Clock` 주입, 단계 조립) → `Result(exitCode, newsletter)`. 실제 실행은 `HostThrottle(JdkHttpFetcher)`. 종료 코드 0/1/2, 결과 요약·카테고리별 선정 제목·키워드·소요 시간을 로그로 남김(NFR-8). 키워드는 정제된 전체 기사 제목에서 추출 |
+| T-031 | PipelineIntegrationTest | G10 | Yes | Done | `PipelineIntegrationTest` 7개 통과. `FixtureWeb`(robots 4개, 피드 15개 → 언론사 RSS fixture, RSS의 모든 기사 링크 → 언론사 기사 HTML fixture)과 `@TempDir`, 고정 시각(2026-10-28 22:00 KST)으로 전체 실행. 확인: news·site/index·archive 페이지·archive.html·assets·README 마커, 카테고리 5개 모두 1~5건(SC3), 카드·Markdown 모든 기사에 원문 URL(SC3-1), 본문 요약 비율 ≥ 90%(실측 25/25, SC4), 카테고리 간 같은 기사 없음, **두 번 실행 시 모든 파일 바이트 동일**(FR-7.4), 이전 31일치를 미리 넣으면 웹 30개만 남고 Markdown 32개 모두 유지·목록에서 삭제 날짜 제외(SC9). 실측 로그: 수집 225 → 정제 220 → 선정 25, 정치 1·2위는 3사 공동 보도 사안 |
+| T-032 | 장애 시나리오 테스트 | G10 | Yes | Done | `PipelineFailureTest` 3개 통과. (a) 연합 피드 5개 모두 500 → 종료 코드 0, `failedFeeds` 5건, 5개 카테고리 모두 기사 있음, Markdown에 "수집하지 못한 피드" 표시(SC6). (b) 기사 본문 모두 404 → 종료 코드 0, 요약 전부 RSS, 웹에 "RSS 요약" 표시. (c) 피드 전부 503 → 종료 코드 1, `news/`·`site/` 미생성, 기존 README 그대로(NFR-2) |
 | T-033 | LiveFeedSmokeTest·liveTest 태스크 | G10 | Yes | Todo | |
 | T-034 | 로컬 실제 실행·화면 점검·임계값 조정 | G10 | Yes | Todo | |
 | T-035 | 일일 워크플로(daily-news.yml) | G11 | Yes | Todo | |
