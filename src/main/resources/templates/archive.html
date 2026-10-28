@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('지난 뉴스레터 · Daily News', '')}"></head>
+<body>
+<header th:replace="~{layout :: header('', null)}"></header>
+
+<main id="main">
+    <h1>지난 뉴스레터</h1>
+    <p class="note">
+        웹에서는 최근 <span th:text="${archive.keepDays()}">30</span>일치만 보관합니다.
+        그 이전 뉴스레터는 <a th:href="${archive.markdownArchiveUrl()}">저장소의 Markdown 아카이브</a>에서 볼 수 있습니다.
+    </p>
+    <p class="empty" th:if="${archive.months().isEmpty()}">아직 보관된 뉴스레터가 없습니다.</p>
+    <section class="month" th:each="month : ${archive.months()}">
+        <h2 th:text="${month.label()}">2026년 10월</h2>
+        <ul class="days">
+            <li th:each="day : ${month.days()}"><a th:href="${day.href()}" th:text="${day.label()}">10월 28일 (수)</a></li>
+        </ul>
+    </section>
+</main>
+
+<footer th:replace="~{layout :: footer(${archive.generatedAt()}, ${archive.repositoryUrl()})}"></footer>
+</body>
+</html>

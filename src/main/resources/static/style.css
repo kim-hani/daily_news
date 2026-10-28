@@ -1,0 +1,183 @@
+/* Daily News: 라이트·다크 모드, 최대 폭 760px, 좌우 여백 16px, 360px 폭에서 가로 스크롤 없음 */
+:root {
+    --bg: #fafaf7;
+    --surface: #ffffff;
+    --text: #1d1d1b;
+    --muted: #5c5c57;
+    --border: #e2e1da;
+    --accent: #1f5fbf;
+    --accent-soft: #e6eefb;
+    --chip: #f0efe9;
+    --quote: #f5f4ef;
+    --warn: #8a4b00;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #141413;
+        --surface: #1d1d1b;
+        --text: #ecebe6;
+        --muted: #a9a8a1;
+        --border: #34342f;
+        --accent: #8ab4f8;
+        --accent-soft: #233148;
+        --chip: #2a2a26;
+        --quote: #242421;
+        --warn: #f2b56b;
+    }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    line-height: 1.6;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+}
+
+a { color: var(--accent); }
+a:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.site-header, main, .site-footer {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+.site-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    padding-top: 20px;
+    padding-bottom: 8px;
+}
+.site-header p { margin: 0; }
+.brand { font-size: 1.35rem; font-weight: 700; }
+.brand a { color: inherit; text-decoration: none; }
+.date { color: var(--muted); }
+.site-header nav { margin-left: auto; display: flex; gap: 12px; }
+
+.summary-bar { padding: 8px 0 4px; }
+.stats { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.failed { margin: 4px 0 0; color: var(--warn); font-size: 0.9rem; }
+
+.chips {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 10px 0 0;
+    padding: 0;
+}
+.chips li {
+    background: var(--chip);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 0.9rem;
+}
+
+.tabs {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 16px 0 8px;
+    padding: 8px 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+}
+.tabs a {
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+}
+.tabs a[aria-selected="true"] {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--text);
+    font-weight: 600;
+}
+
+.category { padding-top: 8px; scroll-margin-top: 64px; }
+.category > h2 { font-size: 1.2rem; margin: 16px 0 8px; }
+.empty { color: var(--muted); }
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin: 0 0 12px;
+}
+.card h3 { font-size: 1.05rem; margin: 0 0 6px; line-height: 1.45; }
+.card h3 a { color: var(--text); text-decoration: none; }
+.card h3 a:hover { text-decoration: underline; }
+
+.meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+.badge {
+    border-radius: 6px;
+    padding: 1px 8px;
+    background: var(--chip);
+    color: var(--text);
+}
+.badge.outlets { background: var(--accent-soft); }
+
+blockquote {
+    margin: 0 0 8px;
+    padding: 8px 12px;
+    background: var(--quote);
+    border-left: 3px solid var(--border);
+    border-radius: 0 8px 8px 0;
+}
+blockquote p { margin: 0; }
+blockquote .origin { margin-top: 4px; color: var(--muted); font-size: 0.8rem; }
+
+.url { margin: 0; font-size: 0.85rem; }
+.url a { color: var(--muted); overflow-wrap: anywhere; word-break: break-all; }
+
+.related { margin: 6px 0 0; font-size: 0.9rem; color: var(--muted); }
+.related a + a::before { content: " · "; color: var(--muted); }
+
+.note { color: var(--muted); }
+.month h2 { font-size: 1.1rem; margin: 20px 0 6px; }
+.days { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+
+.site-footer {
+    margin-top: 32px;
+    padding-top: 12px;
+    padding-bottom: 32px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+[role="tabpanel"][hidden] { display: none; }

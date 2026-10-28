@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(${page.title()}, ${page.base()})}"></head>
+<body>
+<header th:replace="~{layout :: header(${page.base()}, ${page.dateLabel()})}"></header>
+
+<main id="main">
+    <section class="summary-bar" aria-label="오늘의 요약">
+        <p class="stats" th:text="${page.statsLine()}">수집 512건 → 중복 제거 431건 → 선정 25건</p>
+        <p class="failed" th:if="${!page.failedFeeds().isEmpty()}"
+           th:text="|수집하지 못한 피드: ${#strings.listJoin(page.failedFeeds(), ', ')}|">수집하지 못한 피드</p>
+        <h2 class="visually-hidden">오늘의 키워드</h2>
+        <ul class="chips" th:if="${!page.keywords().isEmpty()}" aria-label="오늘의 키워드">
+            <li th:each="keyword : ${page.keywords()}" th:text="${keyword}">예산안</li>
+        </ul>
+    </section>
+
+    <!-- JS가 없으면 각 탭은 해당 섹션으로 이동하는 앵커로 동작한다. tabs.js가 있으면 탭 전환으로 바뀐다. -->
+    <nav class="tabs" role="tablist" aria-label="카테고리">
+        <a th:each="section, status : ${page.sections()}" role="tab" th:id="|tab-${section.slug()}|"
+           th:href="|#${section.slug()}|" th:attr="aria-controls=${section.slug()},aria-selected=${status.first}"
+           th:text="|${section.emoji()} ${section.label()}|">🏛 정치</a>
+    </nav>
+
+    <section th:each="section : ${page.sections()}" th:id="${section.slug()}" class="category" role="tabpanel"
+             th:attr="aria-labelledby=|tab-${section.slug()}|" tabindex="0">
+        <h2 th:text="|${section.emoji()} ${section.label()}|">🏛 정치</h2>
+        <p class="empty" th:if="${section.cards().isEmpty()}">오늘은 선정된 기사가 없습니다.</p>
+        <article class="card" th:each="card : ${section.cards()}">
+            <h3><a th:href="${card.url()}" th:text="${card.title()}">기사 제목</a></h3>
+            <p class="meta">
+                <span class="badge source" th:text="${card.sourceName()}">연합뉴스</span>
+                <time th:datetime="${card.isoTime()}" th:text="${card.time()}">08:12</time>
+                <span class="badge outlets" th:if="${card.outletCount() > 1}"
+                      th:text="|${card.outletCount()}개 언론사 보도|">3개 언론사 보도</span>
+            </p>
+            <blockquote th:if="${!card.summary().isEmpty()}">
+                <p th:text="${card.summary()}">요약</p>
+                <p class="origin" th:if="${card.rssSummary()}">RSS 요약</p>
+            </blockquote>
+            <p class="url"><a th:href="${card.url()}" th:text="${card.url()}">https://…</a></p>
+            <p class="related" th:if="${!card.related().isEmpty()}">같은 사안:
+                <a th:each="link : ${card.related()}" th:href="${link.url()}" th:text="${link.name()}">동아일보</a>
+            </p>
+        </article>
+    </section>
+</main>
+
+<footer th:replace="~{layout :: footer(${page.generatedAt()}, ${page.repositoryUrl()})}"></footer>
+</body>
+</html>
