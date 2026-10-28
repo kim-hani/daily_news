@@ -17,6 +17,7 @@ retention:
 sources:
   - id: yonhap
     name: 연합뉴스
+    domains: [yna.co.kr]                # 기사 링크로 허용하는 도메인(하위 도메인 포함)
     bodySelector: "div.story-news.article > p"
     creditPatterns:
       - '^\(.+?=연합뉴스\)\s*\S+\s*(기자|특파원)\s*=\s*'
@@ -30,6 +31,7 @@ sources:
 
   - id: donga
     name: 동아일보
+    domains: [donga.com]
     bodySelector: "section.news_view"
     feeds:
       POLITICS: https://rss.donga.com/politics.xml
@@ -40,6 +42,7 @@ sources:
 
   - id: khan
     name: 경향신문
+    domains: [khan.co.kr]
     bodySelector: "div#articleBody p.content_text"
     feeds:
       POLITICS: https://www.khan.co.kr/rss/rssdata/politic_news.xml

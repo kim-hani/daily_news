@@ -21,7 +21,7 @@ class RssParserTest {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final List<Source> SOURCES = ConfigLoader.loadDefault().sources();
-    private static final Source TEST_SOURCE = new Source("test", "테스트일보", "div", List.of(), Map.of(), Set.of());
+    private static final Source TEST_SOURCE = new Source("test", "테스트일보", List.of("example.com"), "div", List.of(), Map.of(), Set.of());
 
     private final RssParser parser = new RssParser();
 

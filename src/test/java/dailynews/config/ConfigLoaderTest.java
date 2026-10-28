@@ -8,6 +8,7 @@ import dailynews.model.Source;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -30,6 +31,7 @@ class ConfigLoaderTest {
             sources:
               - id: sample
                 name: 샘플일보
+                domains: [example.com]
                 bodySelector: "div.body"
                 creditPatterns: ['^\\(샘플\\)\\s*']
                 feeds:
@@ -48,6 +50,8 @@ class ConfigLoaderTest {
         AppConfig config = ConfigLoader.loadDefault();
 
         assertThat(config.sources()).extracting(Source::id).containsExactly("yonhap", "donga", "khan");
+        assertThat(config.sources()).extracting(Source::domains)
+                .containsExactly(List.of("yna.co.kr"), List.of("donga.com"), List.of("khan.co.kr"));
         assertThat(config.sources()).allSatisfy(source ->
                 assertThat(source.feeds().keySet()).containsExactly(Category.values()));
         assertThat(config.sources().stream().mapToInt(source -> source.feeds().size()).sum()).isEqualTo(15);
@@ -181,11 +185,21 @@ class ConfigLoaderTest {
                         VALID.replace("itKeywords:", """
                                   - id: sample
                                     name: 다른일보
+                                    domains: [example.com]
                                     bodySelector: "div"
                                     feeds:
                                       POLITICS: https://other.example.com/politics.xml
                                 itKeywords:"""),
                         "sources[1].id: 중복된 언론사 id입니다: sample"),
+                Arguments.of("domains 누락",
+                        VALID.replace("    domains: [example.com]\n", ""),
+                        "sources[sample].domains: 도메인이 하나 이상"),
+                Arguments.of("도메인 형식 오류",
+                        VALID.replace("domains: [example.com]", "domains: [\"https://example.com\"]"),
+                        "sources[sample].domains[0]: 도메인 형식이 아닙니다"),
+                Arguments.of("피드 호스트가 domains 밖",
+                        VALID.replace("https://news.example.com/it.xml", "https://news.other.com/it.xml"),
+                        "sources[sample].feeds.IT: 피드 호스트가 domains에 속하지 않습니다: news.other.com"),
                 Arguments.of("빈 파일", "", "설정이 비어 있습니다"));
     }
 
