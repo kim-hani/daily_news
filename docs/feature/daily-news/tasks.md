@@ -36,10 +36,10 @@
 | T-009 | 테스트 fixture 수집 | G4 | Yes | Done | 정치 피드 RSS 3개(앞 item 15개만 남김)와 기사 HTML 6개(본문 컨테이너의 앞 4문단과 잡음 요소만 남김, 4~5KB), robots.txt 5개(T-008), `fixtures/README.md`(출처·수집일·축소 방식) 저장. `FixturesTest` 18개 통과(UTF-8 디코딩, item 10개 이상). 공통 헬퍼 `Fixtures`를 추가하고 `FakeHttpFetcher`가 이를 쓰도록 정리. **리스크**: 경향 기사 페이지는 1초 간격 연속 요청에 403을 돌려주고 1~2분 뒤 풀림(빈도 제한). 운영 시 경향 본문이 RSS 요약으로 대체될 수 있음 → T-034에서 호스트별 간격 조정 검토. 참고: 동아 본문은 `<p>` 없이 텍스트+`<br>`, 경향 첫 문단은 소제목(`b.strapline`)이라 G7에서 처리 필요 |
 | T-010 | RssParser(날짜·CDATA 처리) | G4 | Yes | Done | `RssParserTest` 10개 통과(fixture 3종 건수 15·첫 item 제목/링크/KST 시각, 경향 `dc:date`, 동아 description HTML 제거, UTC→KST, CDATA 공백·줄바꿈 정리, 날짜·제목·링크 누락/오류 item 건너뜀, 깨진 XML·HTML 응답은 `RssParseException`). 링크는 원본 그대로 넘기고(경향 utm 포함) 정규화는 T-012에서. `javascript:` 등 http(s)가 아닌 링크도 여기서 건너뜀. 공백 정리는 NBSP 포함 |
 | T-011 | FeedCollector(실패 피드 skip) | G4 | Yes | Done | `FeedCollectorTest` 6개 통과(정상 225건·카테고리별 45건, 언론사×카테고리 순서, 500 피드 1개만 실패 기록, 연결 실패·HTML 응답도 해당 피드만 건너뜀, robots 차단 피드는 요청 없이 실패 기록, 전부 실패 시 기사 0건·실패 15건). 결과는 `CollectResult(articles, failedFeeds)`, 실패 피드는 `yonhap/POLITICS` 형식. 로그: 피드별 건수 INFO, 실패 사유 WARN, 합계 INFO(NFR-8). 전부 실패 시 종료 코드 1 처리는 T-030에서 |
-| T-012 | UrlNormalizer | G5 | Yes | Todo | |
-| T-013 | TitleNormalizer | G5 | Yes | Todo | |
-| T-014 | ArticleCleaner(24h·중복 제거) | G5 | Yes | Todo | |
-| T-015 | CategoryFilter(IT 키워드) | G5 | Yes | Todo | |
+| T-012 | UrlNormalizer | G5 | Yes | Done | `UrlNormalizerTest` 18개 통과(경향 utm·끝 `/` 제거, `&amp;` 디코딩, fbclid 제거, 소문자·fragment·기본 포트 제거, 하위 도메인 허용, 정규화된 URL 불변, `javascript:`·ftp·다른 도메인·유사 도메인·상대 경로·깨진 URL 거부). plan 대비: 언론사 도메인을 피드 호스트로 추정할 수 없어(`rss.donga.com` vs `www.donga.com`) `sources.yml`에 언론사별 `domains`를 추가하고 `Source.domains`·`ownsHost()`로 판정. 피드 호스트도 `domains`에 속해야 하도록 설정 검증 추가(`ConfigLoaderTest` 28개). 경로 끝 `/`도 제거(경향 RSS 링크와 guid를 같은 URL로 보기 위해) |
+| T-013 | TitleNormalizer | G5 | Yes | Done | `TitleNormalizerTest` 11개 통과(말머리 `[단독]`·`[속보]`·`【】`·`<>`·꼬리표 `[정치를 부탁해]`, 연합 갱신 표시 `(종합2보)`·`(2보)`, 따옴표 변형이 같은 정규형). `normalize()`(비교용: 특수문자 제거·소문자)와 `clean()`(키워드용: 대소문자·문장부호 유지) 두 형태로 제공. plan 대비: 연합 `(종합)` 류 갱신 표시도 지워 같은 기사의 갱신본이 중복으로 합쳐지게 함 |
+| T-014 | ArticleCleaner(24h·중복 제거) | G5 | Yes | Done | `ArticleCleanerTest` 6개 통과(정확히 24시간 전 포함·1초 초과 제외·미래 제외, URL 정규화·허용 안 된 링크 제거, 같은 카테고리 URL 중복과 같은 언론사 정규화 제목 중복은 가장 이른 기사만 유지, 카테고리가 다르면 합치지 않음, 입력 순서 유지). 카테고리 간 중복은 T-019 선정 단계에서 처리(plan §3 원칙). 정제 결과 건수·사유를 로그로 남김. `Article.withUrl()`과 테스트 헬퍼 `TestArticles` 추가 |
+| T-015 | CategoryFilter(IT 키워드) | G5 | Yes | Done | `CategoryFilterTest` 14개 통과(연합 산업 피드는 제목·설명에 키워드가 있는 기사만, 다른 피드는 영향 없음, `AI`가 `MAIN`·`PAID`에 안 걸리고 `AI가`·`(AI)`·소문자 `ai`는 맞음, `5G망` 맞음·`15G` 안 맞음, 키워드 목록이 비면 지정 피드 기사 모두 제외). 모든 키워드에 "앞뒤 영문자·숫자 없음" 경계를 적용(한글 조사 결합은 허용) |
 | T-016 | KomoranAnalyzer(명사 추출 래퍼) | G6 | Yes | Todo | |
 | T-017 | TitleSimilarity | G6 | Yes | Todo | |
 | T-018 | StoryClusterer | G6 | Yes | Todo | |
