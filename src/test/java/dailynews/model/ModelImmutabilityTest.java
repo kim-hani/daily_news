@@ -71,7 +71,7 @@ class ModelImmutabilityTest {
         sections.put(Category.POLITICS, List.of(newsItem(Category.POLITICS)));
         List<String> keywords = new ArrayList<>(List.of("예산안"));
 
-        Newsletter newsletter = new Newsletter(LocalDate.of(2026, 10, 28), NOW, sections, keywords, emptyStats());
+        Newsletter newsletter = new Newsletter(LocalDate.of(2026, 10, 28), NOW, List.of("A일보"), sections, keywords, emptyStats());
         globalItems.clear();
         sections.clear();
         keywords.clear();

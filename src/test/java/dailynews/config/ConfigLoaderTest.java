@@ -20,6 +20,8 @@ class ConfigLoaderTest {
 
     private static final String VALID = """
             userAgent: "TestBot/1.0"
+            siteUrl: "https://example.github.io/news/"
+            repositoryUrl: "https://github.com/example/news"
             requestDelayMillis: 0
             timeoutSeconds: 5
             windowHours: 12
@@ -72,6 +74,8 @@ class ConfigLoaderTest {
         assertThat(config.retention()).isEqualTo(new AppConfig.Retention(30, 0));
         assertThat(config.itKeywords()).contains("반도체", "SK하이닉스");
         assertThat(config.stopwords()).contains("기자");
+        assertThat(config.siteUrl()).isEqualTo("https://kim-hani.github.io/daily_news/");
+        assertThat(config.repositoryUrl()).isEqualTo("https://github.com/kim-hani/daily_news");
     }
 
     @Test
@@ -203,6 +207,9 @@ class ConfigLoaderTest {
                 Arguments.of("피드 호스트가 domains 밖",
                         VALID.replace("https://news.example.com/it.xml", "https://news.other.com/it.xml"),
                         "sources[sample].feeds.IT: 피드 호스트가 domains에 속하지 않습니다: news.other.com"),
+                Arguments.of("siteUrl이 http(s)가 아님",
+                        VALID.replace("https://example.github.io/news/", "example.github.io/news"),
+                        "siteUrl: http(s) URL만"),
                 Arguments.of("빈 파일", "", "설정이 비어 있습니다"));
     }
 

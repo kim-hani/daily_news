@@ -2,6 +2,8 @@
 # 다른 파일로 바꾸려면: ./gradlew run --args="--config path/to/sources.yml"
 
 userAgent: "DailyNewsBot/1.0 (+https://github.com/kim-hani/daily_news)"
+siteUrl: "https://kim-hani.github.io/daily_news/"        # GitHub Pages 주소(README에 표시)
+repositoryUrl: "https://github.com/kim-hani/daily_news"  # 아카이브 페이지의 Markdown 링크
 requestDelayMillis: 1000      # 같은 호스트에 연속 요청할 때 간격
 timeoutSeconds: 10
 windowHours: 24               # 최근 몇 시간 안의 기사만 쓸지

@@ -89,8 +89,10 @@ public final class ConfigLoader {
         List<Source> sources = toSources(raw.sources());
         List<String> itKeywords = textList(raw.itKeywords(), "itKeywords");
         List<String> stopwords = textList(raw.stopwords(), "stopwords");
+        String siteUrl = toHttpUri(raw.siteUrl(), "siteUrl").toString();
+        String repositoryUrl = toHttpUri(raw.repositoryUrl(), "repositoryUrl").toString();
         return new AppConfig(userAgent, requestDelayMillis, timeoutSeconds, windowHours, perCategory,
-                clusterThreshold, retention, sources, itKeywords, stopwords);
+                clusterThreshold, retention, sources, itKeywords, stopwords, siteUrl, repositoryUrl);
     }
 
     private static AppConfig.Retention toRetention(RawRetention raw) {
@@ -252,7 +254,8 @@ public final class ConfigLoader {
     private record RawConfig(String userAgent, Integer requestDelayMillis, Integer timeoutSeconds,
                              Integer windowHours, Integer perCategory, Double clusterThreshold,
                              RawRetention retention, List<SourceConfig> sources,
-                             List<String> itKeywords, List<String> stopwords) {
+                             List<String> itKeywords, List<String> stopwords, String siteUrl,
+                             String repositoryUrl) {
     }
 
     private record RawRetention(Integer siteArchiveDays, Integer newsDays) {
