@@ -44,10 +44,10 @@
 | T-017 | TitleSimilarity | G6 | Yes | Done | `TitleSimilarityTest` 13개 통과. fixture 실제 제목으로 같은 사안 쌍 5개는 0.4 이상(0.455~0.75), 다른 사안 쌍 5개는 0.4 미만(최대 0.19). 사전 탐색에서 같은 사안 쌍 8개 중 7개가 0.4 이상이었고, 0.36인 1쌍도 같은 사안의 다른 제목을 거쳐 묶임 → 임계값 0.4 유지. 2-gram은 공백을 뺀 문자열로 만들고, 비교 특징(`Features`)을 한 번만 계산해 재사용 |
 | T-018 | StoryClusterer | G6 | Yes | Done | `StoryClustererTest` 4개 통과(3사 사안 1개 + 단독 2개 → 클러스터 3개, outletCount 3·1·1, 같은 언론사 여러 건은 한 번만 셈, 카테고리별 분리). plan 대비: 순수 greedy 방식은 기사 순서에 따라 같은 사안이 둘로 갈리는 문제가 실제 fixture 제목에서 확인돼(연합-동아 0.36, 둘 다 경향과 0.4 이상), 새 기사가 여러 클러스터와 이어지면 **클러스터를 합치는 single-link**로 구현(연결 요소와 같고 순서 무관) |
 | T-019 | StoryRanker·StorySelector | G6 | Yes | Done | `StoryRankerTest` 5개 + `StorySelectorTest` 4개 통과(점수 = 언론사 수×10 + 최신성, 최신성 0~1 범위, 동점이면 기사 수, 대표는 가장 이른 보도·동시각이면 설정 순서, related는 다른 언론사마다 가장 이른 1건, Top 5, 후보 3개면 3개, 빈 카테고리도 결과에 포함, 앞 카테고리 선정 URL 제외, 글로벌을 IT보다 먼저). 앞 카테고리에서 쓰인 URL은 대표·related뿐 아니라 클러스터 구성원 전체를 제외. 동점 정렬 마지막 기준(최근 대표 → URL)을 추가해 결과가 항상 같게 함 |
-| T-020 | BodyExtractor | G7 | Yes | Todo | |
-| T-021 | SentenceSplitter | G7 | Yes | Todo | |
-| T-022 | LeadSummarizer | G7 | Yes | Todo | |
-| T-023 | SummaryService(본문 요청→요약 연결) | G7 | Yes | Todo | |
+| T-020 | BodyExtractor | G7 | Yes | Done | `BodyExtractorTest` 11개 통과(fixture 6개 모두 본문 80자 이상·사진 설명 제외, 연합은 부제목·관련뉴스·저작권 문단 제외, 동아는 `<br>`로 문단 분리·중간 제목 `●` 제외, 경향은 소제목 `b.strapline` 제외, 본문 요소 없으면 빈 목록, Content-Type charset(EUC-KR) 디코딩). 잡음 요소 목록에 언론사 fixture에서 확인한 클래스(`.tit-sub`, `.photo-group`, `.art_photo`, `.editor-subtitle`, `.strapline`, `.related-zone`, `.txt-copyright`, `.link-box`)를 추가. selector가 문단 자체를 고르는 경우(연합) 그 문단이 잡음이면 건너뜀 |
+| T-021 | SentenceSplitter | G7 | Yes | Done | `SentenceSplitterTest` 7개 통과(다·요·?·! 뒤 공백, 굽은/곧은 따옴표 안에서는 안 나눔, 닫는 따옴표로 끝나는 문장, 소수점·날짜, U.S.·Mr.·이니셜, 작은따옴표 인용과 영문 아포스트로피 구분) |
+| T-022 | LeadSummarizer | G7 | Yes | Done | `LeadSummarizerTest` 19개 통과(fixture 6개 모두 BODY·200자 이하·크레디트/이메일/저작권 없음, **SC5: 요약 각 문장이 정제 본문의 부분 문자열**, 120자/3문장 규칙, 200자 초과 시 마지막 문장 제거, 긴 첫 문장은 199자+`…`, `(서울=뉴스1) … 기자 =`·`[언론사]`·이메일 제거와 `▶`·`ⓒ`·무단 전재 문단 제거, 본문 40자 미만이면 RSS, 둘 다 없으면 NONE). 언론사별 패턴 외에 일반 크레디트 패턴 `(지역=언론사) … 기자 =`도 적용. fixture에서 **연합 크레디트가 기자 2명(`김효정 전명훈 기자 =`)이라 기존 패턴이 못 지우는 문제**를 발견해 `sources.yml` 패턴을 `[^=]{0,40}?(기자|특파원)`로 넓힘. RSS 설명문은 끝이 잘린 조각(`...`, `···`)을 다른 문장이 있으면 쓰지 않음 |
+| T-023 | SummaryService(본문 요청→요약 연결) | G7 | Yes | Done | `SummaryServiceTest` 3개 통과(정상 기사는 BODY, 404·robots 차단(연합 `/view/AEN…`)은 RSS 대체, bodyOk 2·bodyFallback 2, 사안·순서 유지, 원문 요청 수 ≤ 선정 기사 수, 차단 URL은 요청 안 함). 결과는 `SummaryService.Result(sections, bodyOk, bodyFallback)`. 본문을 못 찾으면 selector와 함께 WARN 로그(사이트 구조 변경 감지용) |
 | T-024 | KeywordExtractor | G8 | Yes | Todo | |
 | T-025 | OutputPaths·MarkdownRenderer | G9 | Yes | Todo | |
 | T-026 | Thymeleaf 템플릿·CSS·HtmlRenderer | G9 | Yes | Todo | |
