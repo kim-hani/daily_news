@@ -40,10 +40,10 @@
 | T-013 | TitleNormalizer | G5 | Yes | Done | `TitleNormalizerTest` 11개 통과(말머리 `[단독]`·`[속보]`·`【】`·`<>`·꼬리표 `[정치를 부탁해]`, 연합 갱신 표시 `(종합2보)`·`(2보)`, 따옴표 변형이 같은 정규형). `normalize()`(비교용: 특수문자 제거·소문자)와 `clean()`(키워드용: 대소문자·문장부호 유지) 두 형태로 제공. plan 대비: 연합 `(종합)` 류 갱신 표시도 지워 같은 기사의 갱신본이 중복으로 합쳐지게 함 |
 | T-014 | ArticleCleaner(24h·중복 제거) | G5 | Yes | Done | `ArticleCleanerTest` 6개 통과(정확히 24시간 전 포함·1초 초과 제외·미래 제외, URL 정규화·허용 안 된 링크 제거, 같은 카테고리 URL 중복과 같은 언론사 정규화 제목 중복은 가장 이른 기사만 유지, 카테고리가 다르면 합치지 않음, 입력 순서 유지). 카테고리 간 중복은 T-019 선정 단계에서 처리(plan §3 원칙). 정제 결과 건수·사유를 로그로 남김. `Article.withUrl()`과 테스트 헬퍼 `TestArticles` 추가 |
 | T-015 | CategoryFilter(IT 키워드) | G5 | Yes | Done | `CategoryFilterTest` 14개 통과(연합 산업 피드는 제목·설명에 키워드가 있는 기사만, 다른 피드는 영향 없음, `AI`가 `MAIN`·`PAID`에 안 걸리고 `AI가`·`(AI)`·소문자 `ai`는 맞음, `5G망` 맞음·`15G` 안 맞음, 키워드 목록이 비면 지정 피드 기사 모두 제외). 모든 키워드에 "앞뒤 영문자·숫자 없음" 경계를 적용(한글 조사 결합은 허용) |
-| T-016 | KomoranAnalyzer(명사 추출 래퍼) | G6 | Yes | Todo | |
-| T-017 | TitleSimilarity | G6 | Yes | Todo | |
-| T-018 | StoryClusterer | G6 | Yes | Todo | |
-| T-019 | StoryRanker·StorySelector | G6 | Yes | Todo | |
+| T-016 | KomoranAnalyzer(명사 추출 래퍼) | G6 | Yes | Done | `KomoranAnalyzerTest` 6개 통과("삼성전자 반도체 투자 확대" → 삼성전자·반도체·투자·확대, 조사 제거, 영문 약어, 1글자 제외, 싱글턴). FULL 모델 사용(로딩 약 3.3초, 한 번만). plan 대비: NNP·NNG에 더해 **영문(SL, 예: SCM·AI)**도 명사로 포함(제목 유사도와 키워드에 중요). `nouns()`는 동시 호출에 대비해 synchronized |
+| T-017 | TitleSimilarity | G6 | Yes | Done | `TitleSimilarityTest` 13개 통과. fixture 실제 제목으로 같은 사안 쌍 5개는 0.4 이상(0.455~0.75), 다른 사안 쌍 5개는 0.4 미만(최대 0.19). 사전 탐색에서 같은 사안 쌍 8개 중 7개가 0.4 이상이었고, 0.36인 1쌍도 같은 사안의 다른 제목을 거쳐 묶임 → 임계값 0.4 유지. 2-gram은 공백을 뺀 문자열로 만들고, 비교 특징(`Features`)을 한 번만 계산해 재사용 |
+| T-018 | StoryClusterer | G6 | Yes | Done | `StoryClustererTest` 4개 통과(3사 사안 1개 + 단독 2개 → 클러스터 3개, outletCount 3·1·1, 같은 언론사 여러 건은 한 번만 셈, 카테고리별 분리). plan 대비: 순수 greedy 방식은 기사 순서에 따라 같은 사안이 둘로 갈리는 문제가 실제 fixture 제목에서 확인돼(연합-동아 0.36, 둘 다 경향과 0.4 이상), 새 기사가 여러 클러스터와 이어지면 **클러스터를 합치는 single-link**로 구현(연결 요소와 같고 순서 무관) |
+| T-019 | StoryRanker·StorySelector | G6 | Yes | Done | `StoryRankerTest` 5개 + `StorySelectorTest` 4개 통과(점수 = 언론사 수×10 + 최신성, 최신성 0~1 범위, 동점이면 기사 수, 대표는 가장 이른 보도·동시각이면 설정 순서, related는 다른 언론사마다 가장 이른 1건, Top 5, 후보 3개면 3개, 빈 카테고리도 결과에 포함, 앞 카테고리 선정 URL 제외, 글로벌을 IT보다 먼저). 앞 카테고리에서 쓰인 URL은 대표·related뿐 아니라 클러스터 구성원 전체를 제외. 동점 정렬 마지막 기준(최근 대표 → URL)을 추가해 결과가 항상 같게 함 |
 | T-020 | BodyExtractor | G7 | Yes | Todo | |
 | T-021 | SentenceSplitter | G7 | Yes | Todo | |
 | T-022 | LeadSummarizer | G7 | Yes | Todo | |
