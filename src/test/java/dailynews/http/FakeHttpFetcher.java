@@ -1,8 +1,7 @@
 package dailynews.http;
 
+import dailynews.Fixtures;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -30,7 +29,7 @@ public final class FakeHttpFetcher implements HttpFetcher {
 
     /** classpath의 fixture 파일 내용으로 200 응답한다. 예: {@code "/fixtures/robots/yonhap.txt"} */
     public FakeHttpFetcher respondWithFixture(String uri, String resourcePath, String contentType) {
-        return respond(uri, 200, readResource(resourcePath), contentType);
+        return respond(uri, 200, Fixtures.bytes(resourcePath), contentType);
     }
 
     /** 응답 대신 예외(연결 실패, 시간 초과 등)를 던진다. */
@@ -55,17 +54,6 @@ public final class FakeHttpFetcher implements HttpFetcher {
     /** 지금까지 요청된 URI(순서대로) */
     public List<URI> requests() {
         return List.copyOf(requests);
-    }
-
-    private static byte[] readResource(String resourcePath) {
-        try (InputStream in = FakeHttpFetcher.class.getResourceAsStream(resourcePath)) {
-            if (in == null) {
-                throw new IllegalArgumentException("fixture가 없습니다: " + resourcePath);
-            }
-            return in.readAllBytes();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
     }
 
     private record Response(int status, byte[] body, String contentType, IOException exception) {
