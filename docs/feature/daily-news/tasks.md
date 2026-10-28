@@ -27,9 +27,9 @@
 |---|---|---|---|---|---|
 | T-001 | Gradle 프로젝트 초기화 | G1 | Yes | Done | Wrapper 9.8.2, `./gradlew build` 성공, KOMORAN 포함 의존성 해석 확인. plan 대비: Gradle 9 문법에 맞춰 `maven { url = … }` 사용, 로그 API용 `slf4j-api` implementation 추가, `liveTest`에 testClassesDirs/classpath 지정(Gradle 9 필수), `gradlew` 줄바꿈 고정용 `.gitattributes` 추가 |
 | T-002 | 패키지 구조·앱 진입점 골격 | G1 | Yes | Done | 빈 패키지가 git에 남도록 패키지마다 `package-info.java`(역할 설명)를 둠. `./gradlew run` 종료 코드 0, `DailyNewsAppTest` 1개 통과. 참고: Windows Git Bash에서는 한글 로그가 깨져 보임(콘솔 인코딩 문제, CI의 ubuntu에서는 해당 없음 → T-034에서 재확인) |
-| T-003 | PR 테스트 워크플로(ci.yml) | G1 | Yes | Done | YAML 파싱 검증 완료(로컬 actionlint·Docker 없음 → actionlint는 미실행). `ci / test` 녹색 확인은 T-037 첫 PR에서. PR 중복 실행 취소용 `concurrency` 추가. 주의: Windows(`core.filemode=false`)에서 커밋 시 `git add --chmod=+x gradlew`로 실행 권한을 넣어야 CI가 동작함 |
-| T-004 | 도메인 모델(Category·record) | G2 | Yes | Todo | |
-| T-005 | sources.yml·ConfigLoader | G2 | Yes | Todo | |
+| T-003 | PR 테스트 워크플로(ci.yml) | G1 | Yes | Done | YAML 파싱 검증 완료(로컬 actionlint·Docker 없음 → actionlint는 미실행). PR #1에서 `ci / test` 통과 확인(36초). PR 중복 실행 취소용 `concurrency` 추가. 주의: Windows(`core.filemode=false`)에서 커밋 시 `git add --chmod=+x gradlew`로 실행 권한을 넣어야 CI가 동작함 |
+| T-004 | 도메인 모델(Category·record) | G2 | Yes | Done | `CategoryTest` 3개, `ModelImmutabilityTest` 5개 통과. `Source.feeds`/`itKeywordFilterFeeds`도 Category 순서(EnumMap/EnumSet)로 복사해 불변으로 둠 |
+| T-005 | sources.yml·ConfigLoader | G2 | Yes | Done | `ConfigLoaderTest` 25개 통과(잘못된 설정 19가지 포함). **피드 수는 15개**: spec FR-2.1 표의 URL이 3사×5카테고리=15개라 15개로 검증하고, plan·tasks에 "14개"로 잘못 적힌 곳(5군데)을 15개로 고침. YAML 원본은 `SourceConfig`(package-private)로 읽고 검증 후 `model.Source`로 변환. 오류는 `ConfigException`에 `파일경로: sources[yonhap].feeds.IT: …` 형태로 위치를 담음(첫 오류에서 중단). `creditPatterns`·`itKeywordFilterFeeds`·`itKeywords`·`stopwords`는 생략 가능, 나머지는 필수. 오타 항목·알 수 없는 카테고리 키도 오류로 처리. userAgent의 저장소 주소를 `kim-hani/daily_news`로 확정 |
 | T-006 | HttpFetcher·JdkHttpFetcher·FakeHttpFetcher | G3 | Yes | Todo | |
 | T-007 | HostThrottle(호스트별 요청 간격) | G3 | Yes | Todo | |
 | T-008 | RobotsPolicy(robots.txt 준수) | G3 | Yes | Todo | |
@@ -114,12 +114,12 @@
 - **Purpose**: 언론사·피드·selector·키워드·보관 기간을 코드 수정 없이 바꿀 수 있게 한다(US8, FR-2.4, FR-7.5).
 - **Required**: Yes · **Depends**: T-004 · **Ref**: plan §4.1
 - **작업**:
-  - `src/main/resources/sources.yml`에 연합·동아·경향 피드 14개, selector, 크레디트 패턴, itKeywords, stopwords, `retention`, 클러스터 임계값(0.4)을 넣는다.
+  - `src/main/resources/sources.yml`에 연합·동아·경향 피드 15개, selector, 크레디트 패턴, itKeywords, stopwords, `retention`, 클러스터 임계값(0.4)을 넣는다.
   - `AppConfig`/`SourceConfig` record를 만든다.
   - `ConfigLoader`를 만든다(classpath 기본값, `--config` 경로 지원).
   - 검증: http(s) URL만 허용, 필수 필드, `perCategory ≥ 1`, `siteArchiveDays ≥ 1`, `newsDays ≥ 0`, 정규식 컴파일
 - **완료 조건**:
-  - 기본 설정을 로드하면 언론사 3곳·피드 14개가 나온다.
+  - 기본 설정을 로드하면 언론사 3곳·피드 15개가 나온다.
   - 잘못된 URL이나 누락 필드가 있으면 설명이 담긴 예외가 난다.
   - 외부 파일로 덮어쓸 수 있다.
   - 위 내용을 모두 테스트로 확인한다.
@@ -185,7 +185,7 @@
   - 동아 description에 HTML 태그가 없다.
 
 ### T-011 FeedCollector(실패 피드 skip)
-- **Purpose**: 피드 14개를 순차로 수집하고, 일부가 실패해도 계속 진행한다(FR-2.5, NFR-2, US6).
+- **Purpose**: 피드 15개를 순차로 수집하고, 일부가 실패해도 계속 진행한다(FR-2.5, NFR-2, US6).
 - **Required**: Yes · **Depends**: T-007, T-008, T-010 · **Ref**: plan §3
 - **작업**: 설정의 (언론사 × 카테고리) 피드를 순회하며 Throttle과 Robots를 거쳐 요청·파싱한다. 결과는 `List<Article>`과 실패 피드 목록이고, 피드별 수집 건수를 로그로 남긴다(NFR-8).
 - **완료 조건**: FakeHttpFetcher 테스트로 다음을 확인한다.
@@ -403,7 +403,7 @@
 ### T-033 LiveFeedSmokeTest·liveTest 태스크
 - **Purpose**: 실제 사이트의 RSS와 HTML 구조가 바뀌었는지 수동으로 점검할 수단을 둔다(A1, R1).
 - **Required**: Yes · **Depends**: T-030 · **Ref**: plan §9, §11
-- **작업**: `@Tag("live")` 테스트를 만든다. 설정된 피드 14개가 200을 돌려주고 item이 1개 이상인지, 피드별 첫 기사에서 본문 80자 이상이 추출되는지 본다. `liveTest` Gradle 태스크도 등록한다.
+- **작업**: `@Tag("live")` 테스트를 만든다. 설정된 피드 15개가 200을 돌려주고 item이 1개 이상인지, 피드별 첫 기사에서 본문 80자 이상이 추출되는지 본다. `liveTest` Gradle 태스크도 등록한다.
 - **완료 조건**: `./gradlew liveTest`가 로컬에서 통과한다. `./gradlew test`에서는 실행되지 않는다.
 
 ### T-034 로컬 실제 실행·화면 점검·임계값 조정

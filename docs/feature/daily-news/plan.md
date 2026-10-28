@@ -54,7 +54,7 @@ GitHub Actions (cron 0 0 * * * = 09:00 KST)
         ▼
 ┌──────────────────────────── DailyNewsApp (main) ────────────────────────────┐
 │ 1 ConfigLoader      sources.yml → AppConfig                                  │
-│ 2 FeedCollector     피드 14개 순차 수집(호스트별 지연, 실패 피드 skip) → List<Article>
+│ 2 FeedCollector     피드 15개 순차 수집(호스트별 지연, 실패 피드 skip) → List<Article>
 │ 3 ArticleCleaner    URL 정규화(utm 제거)·제목 정규화·24h 필터·중복 제거       │
 │ 4 CategoryFilter    연합 industry → IT 키워드 매칭만 IT로                     │
 │ 5 StoryClusterer    카테고리별 제목 유사도 클러스터 → List<Story>             │
@@ -178,7 +178,7 @@ record RunStats(int collected, int afterDedup, int selected,
 종료 코드: `0`은 성공(일부 피드 실패 포함), `1`은 수집 0건 또는 설정 오류, `2`는 출력 실패.
 
 ### 5.2 외부 HTTP 호출 (`HttpFetcher`)
-- 요청 대상: 피드 URL 14개 + 대표 기사 최대 25건(카테고리 5 × 5)
+- 요청 대상: 피드 URL 15개 + 대표 기사 최대 25건(카테고리 5 × 5)
 - 공통 설정:
   - `User-Agent: DailyNewsBot/1.0 (+repo URL)`, 타임아웃 10초
   - 3xx는 따라가고, 5xx와 타임아웃은 1회 재시도
@@ -318,7 +318,7 @@ daily_news/
 | 단위 | `MarkdownRenderer`, `HtmlRenderer` | 스냅샷 비교(golden file). 모든 기사에 원문 URL 문자열이 있는지(FR-7.0, SC3-1). 이스케이프(`<script>` 제목 → 텍스트로 출력) |
 | 통합 | `PipelineIntegrationTest` | `FakeHttpFetcher`(fixture를 돌려줌) + `@TempDir` + 고정 `Clock`으로 전체 실행. 카테고리 5개 존재, 산출 파일 경로, README 마커 교체, 아카이브 목록, 두 번 실행해도 결과 동일(멱등) |
 | 통합 | 장애 시나리오 | 피드 1개 500 응답 → 성공하고 `failedFeeds`에 기록(SC6). 전체 실패 → 종료 코드 1, 파일 미생성(NFR-2) |
-| 라이브(수동) | `@Tag("live")` `LiveFeedSmokeTest` | 실제 피드 14개가 200을 돌려주고 selector로 본문 80자 이상이 나오는지 본다. 기본 `test`에서는 빼고 `./gradlew liveTest`로 실행한다. 사이트 구조 변경 감지용이다(A1). |
+| 라이브(수동) | `@Tag("live")` `LiveFeedSmokeTest` | 실제 피드 15개가 200을 돌려주고 selector로 본문 80자 이상이 나오는지 본다. 기본 `test`에서는 빼고 `./gradlew liveTest`로 실행한다. 사이트 구조 변경 감지용이다(A1). |
 | E2E | 워크플로 | `workflow_dispatch`로 수동 실행 → main 커밋, Pages 반영, 잔디 확인. 7일 연속 운영 관찰(SC1, SC2) |
 
 - CI(`ci.yml`): 모든 PR에서 `./gradlew test`를 돈다. 실패하면 병합할 수 없다(Ruleset의 required status check).
