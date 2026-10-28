@@ -20,7 +20,7 @@ sources:
     domains: [yna.co.kr]                # 기사 링크로 허용하는 도메인(하위 도메인 포함)
     bodySelector: "div.story-news.article > p"
     creditPatterns:
-      - '^\(.+?=연합뉴스\)\s*\S+\s*(기자|특파원)\s*=\s*'
+      - '^\(.+?=연합뉴스\)\s*[^=]{0,40}?(기자|특파원)\s*=\s*'   # 기자가 여럿일 수 있다: (서울=연합뉴스) 김효정 전명훈 기자 =
     feeds:
       POLITICS: https://www.yna.co.kr/rss/politics.xml
       SOCIETY: https://www.yna.co.kr/rss/society.xml

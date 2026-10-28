@@ -83,6 +83,9 @@ class ConfigLoaderTest {
         assertThat(yonhap.creditPatterns().getFirst()
                 .matcher("(서울=연합뉴스) 홍길동 기자 = 국회가 28일 본회의를 열었다.").replaceFirst(""))
                 .isEqualTo("국회가 28일 본회의를 열었다.");
+        assertThat(yonhap.creditPatterns().getFirst()
+                .matcher("(서울=연합뉴스) 김효정 전명훈 기자 = 한미 국방장관이 합의했다.").replaceFirst(""))
+                .isEqualTo("한미 국방장관이 합의했다.");
     }
 
     @Test
