@@ -30,9 +30,9 @@
 | T-003 | PR 테스트 워크플로(ci.yml) | G1 | Yes | Done | YAML 파싱 검증 완료(로컬 actionlint·Docker 없음 → actionlint는 미실행). PR #1에서 `ci / test` 통과 확인(36초). PR 중복 실행 취소용 `concurrency` 추가. 주의: Windows(`core.filemode=false`)에서 커밋 시 `git add --chmod=+x gradlew`로 실행 권한을 넣어야 CI가 동작함 |
 | T-004 | 도메인 모델(Category·record) | G2 | Yes | Done | `CategoryTest` 3개, `ModelImmutabilityTest` 5개 통과. `Source.feeds`/`itKeywordFilterFeeds`도 Category 순서(EnumMap/EnumSet)로 복사해 불변으로 둠 |
 | T-005 | sources.yml·ConfigLoader | G2 | Yes | Done | `ConfigLoaderTest` 25개 통과(잘못된 설정 19가지 포함). **피드 수는 15개**: spec FR-2.1 표의 URL이 3사×5카테고리=15개라 15개로 검증하고, plan·tasks에 "14개"로 잘못 적힌 곳(5군데)을 15개로 고침. YAML 원본은 `SourceConfig`(package-private)로 읽고 검증 후 `model.Source`로 변환. 오류는 `ConfigException`에 `파일경로: sources[yonhap].feeds.IT: …` 형태로 위치를 담음(첫 오류에서 중단). `creditPatterns`·`itKeywordFilterFeeds`·`itKeywords`·`stopwords`는 생략 가능, 나머지는 필수. 오타 항목·알 수 없는 카테고리 키도 오류로 처리. userAgent의 저장소 주소를 `kim-hani/daily_news`로 확정 |
-| T-006 | HttpFetcher·JdkHttpFetcher·FakeHttpFetcher | G3 | Yes | Todo | |
-| T-007 | HostThrottle(호스트별 요청 간격) | G3 | Yes | Todo | |
-| T-008 | RobotsPolicy(robots.txt 준수) | G3 | Yes | Todo | |
+| T-006 | HttpFetcher·JdkHttpFetcher·FakeHttpFetcher | G3 | Yes | Done | `FakeHttpFetcherTest` 4개(200·404·500·예외·fixture), `JdkHttpFetcherTest` 7개(로컬 `HttpServer`: UA, 리다이렉트, 5xx·시간 초과 1회 재시도, 4xx 미재시도) 통과. 재시도 전 1초 대기(`Sleeper` 주입, 같은 서버에 바로 재요청하지 않도록). 4xx·5xx는 예외 없이 `FetchResult`로, 연결 실패·시간 초과는 `IOException`으로 구분 |
+| T-007 | HostThrottle(호스트별 요청 간격) | G3 | Yes | Done | `HostThrottleTest` 5개 통과(같은 호스트 지연, 다른 호스트 무지연, 남은 시간만 대기, 호스트 대소문자 무시, 실패 요청 뒤에도 간격 유지). 간격은 직전 요청이 **끝난** 시각부터 잼. 순차 요청 전제라 스레드 안전하지 않음(문서화) |
+| T-008 | RobotsPolicy(robots.txt 준수) | G3 | Yes | Done | `RobotsRulesTest` 13개(최장 일치, 동률 시 Allow, `*`·`$`, 다중 UA 그룹, `*` 그룹 병합, 빈 줄, `Disallow :`, 대소문자, BOM), `RobotsPolicyTest` 11개 통과. 실제 robots.txt 5개(연합·동아·rss.donga·경향·서울, 2026-10-28 수집)를 `fixtures/robots/`에 저장해 검증하고, 기본 설정 피드 15개가 모두 허용되는지도 확인. plan 대비: 404뿐 아니라 **4xx 전체를 전부 허용**으로 처리(RFC 9309 기준). 규칙 해석은 `RobotsRules`(package-private)로 분리. `*` 그룹만 보고 봇 이름별 그룹은 무시(plan대로), 퍼센트 인코딩은 정규화 없이 그대로 비교 |
 | T-009 | 테스트 fixture 수집 | G4 | Yes | Todo | |
 | T-010 | RssParser(날짜·CDATA 처리) | G4 | Yes | Todo | |
 | T-011 | FeedCollector(실패 피드 skip) | G4 | Yes | Todo | |
