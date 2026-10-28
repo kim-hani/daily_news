@@ -21,7 +21,7 @@ class RssParserTest {
 
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final List<Source> SOURCES = ConfigLoader.loadDefault().sources();
-    private static final Source TEST_SOURCE = new Source("test", "테스트일보", "div", List.of(), Map.of(), Set.of());
+    private static final Source TEST_SOURCE = new Source("test", "테스트일보", List.of("example.com"), "div", List.of(), Map.of(), Set.of());
 
     private final RssParser parser = new RssParser();
 
@@ -95,6 +95,18 @@ class RssParserTest {
 
         assertThat(articles.getFirst().title()).isEqualTo("[속보] 국회, 예산안 통과");
         assertThat(articles.getFirst().url()).isEqualTo(URI.create("https://a.example.com/1"));
+    }
+
+    @Test
+    void 링크_경로의_공백은_인코딩한다() throws RssParseException {
+        List<Article> articles = parse(item("""
+                <title>HD현대 실적</title>
+                <link>https://www.donga.com/news/K-TECH Global Leaders/article/all/20261028/134927659/1</link>
+                <pubDate>Wed, 28 Oct 2026 08:00:00 +0900</pubDate>
+                """));
+
+        assertThat(articles.getFirst().url()).isEqualTo(
+                URI.create("https://www.donga.com/news/K-TECH%20Global%20Leaders/article/all/20261028/134927659/1"));
     }
 
     @Test

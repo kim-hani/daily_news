@@ -1,6 +1,7 @@
 # Daily News — 작업 목록 (Tasks)
 
 > 기준: [`spec.md`](./spec.md), [`plan.md`](./plan.md) · 브랜치: `feature/daily-news` · 작성일: 2026-10-28
+> 구현 결과·전체 흐름도: [`implementation.md`](./implementation.md) · GitHub 설정: [`setup-guide.md`](./setup-guide.md)
 
 ## Summary
 | 그룹 | 이름 | 작업 범위 | 복잡도 | 작업 수 |
@@ -36,34 +37,34 @@
 | T-009 | 테스트 fixture 수집 | G4 | Yes | Done | 정치 피드 RSS 3개(앞 item 15개만 남김)와 기사 HTML 6개(본문 컨테이너의 앞 4문단과 잡음 요소만 남김, 4~5KB), robots.txt 5개(T-008), `fixtures/README.md`(출처·수집일·축소 방식) 저장. `FixturesTest` 18개 통과(UTF-8 디코딩, item 10개 이상). 공통 헬퍼 `Fixtures`를 추가하고 `FakeHttpFetcher`가 이를 쓰도록 정리. **리스크**: 경향 기사 페이지는 1초 간격 연속 요청에 403을 돌려주고 1~2분 뒤 풀림(빈도 제한). 운영 시 경향 본문이 RSS 요약으로 대체될 수 있음 → T-034에서 호스트별 간격 조정 검토. 참고: 동아 본문은 `<p>` 없이 텍스트+`<br>`, 경향 첫 문단은 소제목(`b.strapline`)이라 G7에서 처리 필요 |
 | T-010 | RssParser(날짜·CDATA 처리) | G4 | Yes | Done | `RssParserTest` 10개 통과(fixture 3종 건수 15·첫 item 제목/링크/KST 시각, 경향 `dc:date`, 동아 description HTML 제거, UTC→KST, CDATA 공백·줄바꿈 정리, 날짜·제목·링크 누락/오류 item 건너뜀, 깨진 XML·HTML 응답은 `RssParseException`). 링크는 원본 그대로 넘기고(경향 utm 포함) 정규화는 T-012에서. `javascript:` 등 http(s)가 아닌 링크도 여기서 건너뜀. 공백 정리는 NBSP 포함 |
 | T-011 | FeedCollector(실패 피드 skip) | G4 | Yes | Done | `FeedCollectorTest` 6개 통과(정상 225건·카테고리별 45건, 언론사×카테고리 순서, 500 피드 1개만 실패 기록, 연결 실패·HTML 응답도 해당 피드만 건너뜀, robots 차단 피드는 요청 없이 실패 기록, 전부 실패 시 기사 0건·실패 15건). 결과는 `CollectResult(articles, failedFeeds)`, 실패 피드는 `yonhap/POLITICS` 형식. 로그: 피드별 건수 INFO, 실패 사유 WARN, 합계 INFO(NFR-8). 전부 실패 시 종료 코드 1 처리는 T-030에서 |
-| T-012 | UrlNormalizer | G5 | Yes | Todo | |
-| T-013 | TitleNormalizer | G5 | Yes | Todo | |
-| T-014 | ArticleCleaner(24h·중복 제거) | G5 | Yes | Todo | |
-| T-015 | CategoryFilter(IT 키워드) | G5 | Yes | Todo | |
-| T-016 | KomoranAnalyzer(명사 추출 래퍼) | G6 | Yes | Todo | |
-| T-017 | TitleSimilarity | G6 | Yes | Todo | |
-| T-018 | StoryClusterer | G6 | Yes | Todo | |
-| T-019 | StoryRanker·StorySelector | G6 | Yes | Todo | |
-| T-020 | BodyExtractor | G7 | Yes | Todo | |
-| T-021 | SentenceSplitter | G7 | Yes | Todo | |
-| T-022 | LeadSummarizer | G7 | Yes | Todo | |
-| T-023 | SummaryService(본문 요청→요약 연결) | G7 | Yes | Todo | |
-| T-024 | KeywordExtractor | G8 | Yes | Todo | |
-| T-025 | OutputPaths·MarkdownRenderer | G9 | Yes | Todo | |
-| T-026 | Thymeleaf 템플릿·CSS·HtmlRenderer | G9 | Yes | Todo | |
-| T-027 | RetentionCleaner(30일 보관) | G9 | Yes | Todo | |
-| T-028 | ArchiveRenderer | G9 | Yes | Todo | |
-| T-029 | ReadmeUpdater·README 초안 | G9 | Yes | Todo | |
-| T-030 | DailyNewsApp CLI·파이프라인 조립 | G10 | Yes | Todo | |
-| T-031 | PipelineIntegrationTest | G10 | Yes | Todo | |
-| T-032 | 장애 시나리오 테스트 | G10 | Yes | Todo | |
-| T-033 | LiveFeedSmokeTest·liveTest 태스크 | G10 | Yes | Todo | |
-| T-034 | 로컬 실제 실행·화면 점검·임계값 조정 | G10 | Yes | Todo | |
-| T-035 | 일일 워크플로(daily-news.yml) | G11 | Yes | Todo | |
-| T-036 | GitHub 1회 설정 가이드 | G11 | Yes | Todo | |
-| T-037 | 첫 PR 병합·수동 실행 E2E | G11 | Yes | Todo | |
-| T-038 | 7일 연속 운영 관찰 | G11 | Yes | Todo | |
-| T-039 | JS 탭 전환(점진적 향상) | G12 | No | Todo | |
+| T-012 | UrlNormalizer | G5 | Yes | Done | `UrlNormalizerTest` 18개 통과(경향 utm·끝 `/` 제거, `&amp;` 디코딩, fbclid 제거, 소문자·fragment·기본 포트 제거, 하위 도메인 허용, 정규화된 URL 불변, `javascript:`·ftp·다른 도메인·유사 도메인·상대 경로·깨진 URL 거부). plan 대비: 언론사 도메인을 피드 호스트로 추정할 수 없어(`rss.donga.com` vs `www.donga.com`) `sources.yml`에 언론사별 `domains`를 추가하고 `Source.domains`·`ownsHost()`로 판정. 피드 호스트도 `domains`에 속해야 하도록 설정 검증 추가(`ConfigLoaderTest` 28개). 경로 끝 `/`도 제거(경향 RSS 링크와 guid를 같은 URL로 보기 위해) |
+| T-013 | TitleNormalizer | G5 | Yes | Done | `TitleNormalizerTest` 11개 통과(말머리 `[단독]`·`[속보]`·`【】`·`<>`·꼬리표 `[정치를 부탁해]`, 연합 갱신 표시 `(종합2보)`·`(2보)`, 따옴표 변형이 같은 정규형). `normalize()`(비교용: 특수문자 제거·소문자)와 `clean()`(키워드용: 대소문자·문장부호 유지) 두 형태로 제공. plan 대비: 연합 `(종합)` 류 갱신 표시도 지워 같은 기사의 갱신본이 중복으로 합쳐지게 함 |
+| T-014 | ArticleCleaner(24h·중복 제거) | G5 | Yes | Done | `ArticleCleanerTest` 6개 통과(정확히 24시간 전 포함·1초 초과 제외·미래 제외, URL 정규화·허용 안 된 링크 제거, 같은 카테고리 URL 중복과 같은 언론사 정규화 제목 중복은 가장 이른 기사만 유지, 카테고리가 다르면 합치지 않음, 입력 순서 유지). 카테고리 간 중복은 T-019 선정 단계에서 처리(plan §3 원칙). 정제 결과 건수·사유를 로그로 남김. `Article.withUrl()`과 테스트 헬퍼 `TestArticles` 추가 |
+| T-015 | CategoryFilter(IT 키워드) | G5 | Yes | Done | `CategoryFilterTest` 14개 통과(연합 산업 피드는 제목·설명에 키워드가 있는 기사만, 다른 피드는 영향 없음, `AI`가 `MAIN`·`PAID`에 안 걸리고 `AI가`·`(AI)`·소문자 `ai`는 맞음, `5G망` 맞음·`15G` 안 맞음, 키워드 목록이 비면 지정 피드 기사 모두 제외). 모든 키워드에 "앞뒤 영문자·숫자 없음" 경계를 적용(한글 조사 결합은 허용) |
+| T-016 | KomoranAnalyzer(명사 추출 래퍼) | G6 | Yes | Done | `KomoranAnalyzerTest` 6개 통과("삼성전자 반도체 투자 확대" → 삼성전자·반도체·투자·확대, 조사 제거, 영문 약어, 1글자 제외, 싱글턴). FULL 모델 사용(로딩 약 3.3초, 한 번만). plan 대비: NNP·NNG에 더해 **영문(SL, 예: SCM·AI)**도 명사로 포함(제목 유사도와 키워드에 중요). `nouns()`는 동시 호출에 대비해 synchronized |
+| T-017 | TitleSimilarity | G6 | Yes | Done | `TitleSimilarityTest` 13개 통과. fixture 실제 제목으로 같은 사안 쌍 5개는 0.4 이상(0.455~0.75), 다른 사안 쌍 5개는 0.4 미만(최대 0.19). 사전 탐색에서 같은 사안 쌍 8개 중 7개가 0.4 이상이었고, 0.36인 1쌍도 같은 사안의 다른 제목을 거쳐 묶임 → 임계값 0.4 유지. 2-gram은 공백을 뺀 문자열로 만들고, 비교 특징(`Features`)을 한 번만 계산해 재사용 |
+| T-018 | StoryClusterer | G6 | Yes | Done | `StoryClustererTest` 4개 통과(3사 사안 1개 + 단독 2개 → 클러스터 3개, outletCount 3·1·1, 같은 언론사 여러 건은 한 번만 셈, 카테고리별 분리). plan 대비: 순수 greedy 방식은 기사 순서에 따라 같은 사안이 둘로 갈리는 문제가 실제 fixture 제목에서 확인돼(연합-동아 0.36, 둘 다 경향과 0.4 이상), 새 기사가 여러 클러스터와 이어지면 **클러스터를 합치는 single-link**로 구현(연결 요소와 같고 순서 무관) |
+| T-019 | StoryRanker·StorySelector | G6 | Yes | Done | `StoryRankerTest` 5개 + `StorySelectorTest` 4개 통과(점수 = 언론사 수×10 + 최신성, 최신성 0~1 범위, 동점이면 기사 수, 대표는 가장 이른 보도·동시각이면 설정 순서, related는 다른 언론사마다 가장 이른 1건, Top 5, 후보 3개면 3개, 빈 카테고리도 결과에 포함, 앞 카테고리 선정 URL 제외, 글로벌을 IT보다 먼저). 앞 카테고리에서 쓰인 URL은 대표·related뿐 아니라 클러스터 구성원 전체를 제외. 동점 정렬 마지막 기준(최근 대표 → URL)을 추가해 결과가 항상 같게 함 |
+| T-020 | BodyExtractor | G7 | Yes | Done | `BodyExtractorTest` 11개 통과(fixture 6개 모두 본문 80자 이상·사진 설명 제외, 연합은 부제목·관련뉴스·저작권 문단 제외, 동아는 `<br>`로 문단 분리·중간 제목 `●` 제외, 경향은 소제목 `b.strapline` 제외, 본문 요소 없으면 빈 목록, Content-Type charset(EUC-KR) 디코딩). 잡음 요소 목록에 언론사 fixture에서 확인한 클래스(`.tit-sub`, `.photo-group`, `.art_photo`, `.editor-subtitle`, `.strapline`, `.related-zone`, `.txt-copyright`, `.link-box`)를 추가. selector가 문단 자체를 고르는 경우(연합) 그 문단이 잡음이면 건너뜀 |
+| T-021 | SentenceSplitter | G7 | Yes | Done | `SentenceSplitterTest` 7개 통과(다·요·?·! 뒤 공백, 굽은/곧은 따옴표 안에서는 안 나눔, 닫는 따옴표로 끝나는 문장, 소수점·날짜, U.S.·Mr.·이니셜, 작은따옴표 인용과 영문 아포스트로피 구분) |
+| T-022 | LeadSummarizer | G7 | Yes | Done | `LeadSummarizerTest` 19개 통과(fixture 6개 모두 BODY·200자 이하·크레디트/이메일/저작권 없음, **SC5: 요약 각 문장이 정제 본문의 부분 문자열**, 120자/3문장 규칙, 200자 초과 시 마지막 문장 제거, 긴 첫 문장은 199자+`…`, `(서울=뉴스1) … 기자 =`·`[언론사]`·이메일 제거와 `▶`·`ⓒ`·무단 전재 문단 제거, 본문 40자 미만이면 RSS, 둘 다 없으면 NONE). 언론사별 패턴 외에 일반 크레디트 패턴 `(지역=언론사) … 기자 =`도 적용. fixture에서 **연합 크레디트가 기자 2명(`김효정 전명훈 기자 =`)이라 기존 패턴이 못 지우는 문제**를 발견해 `sources.yml` 패턴을 `[^=]{0,40}?(기자|특파원)`로 넓힘. RSS 설명문은 끝이 잘린 조각(`...`, `···`)을 다른 문장이 있으면 쓰지 않음 |
+| T-023 | SummaryService(본문 요청→요약 연결) | G7 | Yes | Done | `SummaryServiceTest` 3개 통과(정상 기사는 BODY, 404·robots 차단(연합 `/view/AEN…`)은 RSS 대체, bodyOk 2·bodyFallback 2, 사안·순서 유지, 원문 요청 수 ≤ 선정 기사 수, 차단 URL은 요청 안 함). 결과는 `SummaryService.Result(sections, bodyOk, bodyFallback)`. 본문을 못 찾으면 selector와 함께 WARN 로그(사이트 구조 변경 감지용) |
+| T-024 | KeywordExtractor | G8 | Yes | Done | `KeywordExtractorTest` 5개 통과(빈도순·동률이면 고유명사 다음 가나다순, 불용어 대소문자 무시, 한 제목 안 중복은 1회, 최대 limit개, 실제 KOMORAN으로 "반도체"가 1위·불용어 "기자"와 말머리 "속보" 제외). plan 대비: 빈도는 **명사가 나온 제목 수**로 셈(한 제목에서 반복된 명사가 부풀리지 않게). 입력 제목은 `TitleNormalizer.clean()`(대소문자 유지)을 써서 "AI" 같은 영문 키워드가 소문자로 바뀌지 않게 함. 테스트를 위해 명사 추출 함수를 생성자로 주입(앱에서는 `KomoranAnalyzer::nouns`) |
+| T-025 | OutputPaths·MarkdownRenderer | G9 | Yes | Done | `MarkdownRendererTest` 4개 통과(golden file `src/test/resources/golden/newsletter.md` 일치, 기사 5건 모두 `- 원문: https://`(SC3-1), `[ ] * _ # < >` 이스케이프, `news/YYYY/MM/YYYY-MM-DD.md` 덮어쓰기). 헤더에 수집 실패 피드도 표시(NFR-8), 빈 카테고리는 안내 문구, RSS 요약은 `_(RSS 요약)_` 표기, 같은 사안 링크의 괄호는 `%28/%29`로 인코딩. 모델 변경: 렌더러가 `Newsletter`만으로 그릴 수 있게 `Newsletter.sourceNames` 추가. golden file 비교가 Windows `core.autocrlf`에 깨지지 않게 `.gitattributes`에 `src/test/resources/** eol=lf` 추가 |
+| T-026 | Thymeleaf 템플릿·CSS·HtmlRenderer | G9 | Yes | Done | `HtmlRendererTest` 9개 통과(섹션 5개·순서, 카드 5개 모두 `a[href^=https]`와 URL 텍스트, `<script>` 제목·`<b>` 요약이 텍스트로 출력·인라인 스크립트 없음, `lang=ko`·header/nav/main/article/footer·viewport, 배지·시각(`time[datetime]`)·RSS 요약 표기·같은 사안 링크, 키워드 칩·실패 피드, 날짜별 페이지는 `../assets/` 참조, index·archive·assets 파일 생성). 템플릿 `layout.html`(head·header·footer 조각)·`newsletter.html`·`archive.html`, `th:text`만 사용. CSS: 색 토큰·다크모드·760px·16px·`overflow-wrap:anywhere`·탭 sticky. 템플릿에는 표시용 문자열을 미리 만든 view record(`Page/Section/Card/Link`)를 넘김 |
+| T-027 | RetentionCleaner(30일 보관) | G9 | Yes | Done | `RetentionCleanerTest` 5개 통과(31개 중 가장 오래된 1개만 삭제·30일째 보존, 패턴 외·잘못된 날짜·미래 날짜·하위 폴더 보존, `newsDays: 0`이면 Markdown 보존, `newsDays > 0`이면 Markdown 삭제와 빈 월·연 폴더 정리, 폴더가 없어도 동작). 삭제 목록은 INFO 로그 |
+| T-028 | ArchiveRenderer | G9 | Yes | Done | `ArchiveRendererTest` 3개 통과(서로 다른 월 3개 파일 → 연월 그룹 2개·최신순, 패턴 외 파일 제외, 보관 정리로 지운 날짜는 목록에 없음, 30일 이전은 저장소 Markdown 아카이브(`repositoryUrl/tree/main/news`)로 안내). 설정에 `repositoryUrl` 추가 |
+| T-029 | ReadmeUpdater·README 초안 | G9 | Yes | Done | `ReadmeUpdaterTest` 5개 통과(마커 안만 교체, 마커 없으면 끝에 추가, 두 번 실행해도 동일(멱등), 날짜·웹 주소·Markdown 링크·선정 건수·키워드 포함, README가 없으면 생성). 저장소 루트 `README.md` 초안(소개, 웹 주소, 마커, 동작 방식, 실행 방법, 문서 링크) 작성. 설정에 `siteUrl` 추가(`https://kim-hani.github.io/daily_news/`) |
+| T-030 | DailyNewsApp CLI·파이프라인 조립 | G10 | Yes | Done | `CliOptionsTest` 3개 + `DailyNewsAppTest` 5개 통과(기본값·모든 옵션 파싱, 알 수 없는 옵션·값 없는 옵션·잘못된 날짜 → 사용법 로그와 종료 코드 1, 설정 파일 없음·잘못된 값 → 1, `--dry-run`이면 파일 0개, `--date` 경로, 날짜 생략 시 실행일 KST). 구조: `DailyNewsApp`(옵션·설정·종료 코드) → `DailyNewsPipeline`(생성자에 `AppConfig`·`HttpFetcher`·`Clock` 주입, 단계 조립) → `Result(exitCode, newsletter)`. 실제 실행은 `HostThrottle(JdkHttpFetcher)`. 종료 코드 0/1/2, 결과 요약·카테고리별 선정 제목·키워드·소요 시간을 로그로 남김(NFR-8). 키워드는 정제된 전체 기사 제목에서 추출 |
+| T-031 | PipelineIntegrationTest | G10 | Yes | Done | `PipelineIntegrationTest` 7개 통과. `FixtureWeb`(robots 4개, 피드 15개 → 언론사 RSS fixture, RSS의 모든 기사 링크 → 언론사 기사 HTML fixture)과 `@TempDir`, 고정 시각(2026-10-28 22:00 KST)으로 전체 실행. 확인: news·site/index·archive 페이지·archive.html·assets·README 마커, 카테고리 5개 모두 1~5건(SC3), 카드·Markdown 모든 기사에 원문 URL(SC3-1), 본문 요약 비율 ≥ 90%(실측 25/25, SC4), 카테고리 간 같은 기사 없음, **두 번 실행 시 모든 파일 바이트 동일**(FR-7.4), 이전 31일치를 미리 넣으면 웹 30개만 남고 Markdown 32개 모두 유지·목록에서 삭제 날짜 제외(SC9). 실측 로그: 수집 225 → 정제 220 → 선정 25, 정치 1·2위는 3사 공동 보도 사안 |
+| T-032 | 장애 시나리오 테스트 | G10 | Yes | Done | `PipelineFailureTest` 3개 통과. (a) 연합 피드 5개 모두 500 → 종료 코드 0, `failedFeeds` 5건, 5개 카테고리 모두 기사 있음, Markdown에 "수집하지 못한 피드" 표시(SC6). (b) 기사 본문 모두 404 → 종료 코드 0, 요약 전부 RSS, 웹에 "RSS 요약" 표시. (c) 피드 전부 503 → 종료 코드 1, `news/`·`site/` 미생성, 기존 README 그대로(NFR-2) |
+| T-033 | LiveFeedSmokeTest·liveTest 태스크 | G10 | Yes | Done | `@Tag("live")` `LiveFeedSmokeTest`(피드 15개: robots 허용·200·item 1개 이상, 피드별 첫 기사: robots 허용·200·본문 80자 이상). 운영과 같은 요청기(UA·호스트별 간격·robots). `./gradlew liveTest` 로컬 통과(15개 중 성공 10, 건너뜀 5), `./gradlew test`에서는 제외 확인. **실측**: 경향 기사 페이지는 연속 요청 시 IP를 몇 분간 403으로 막음(1초·10초 간격 모두, 첫 1~2건만 성공). 빈도 제한은 구조 변경이 아니므로 403·429는 실패 대신 assumption으로 **건너뜀** 처리. 1차 실행에서 IT 기사 1건이 200인데 본문 0자였으나 직후 403으로 바뀌어 차단 페이지로 판단 |
+| T-034 | 로컬 실제 실행·화면 점검·임계값 조정 | G10 | Yes | Done | 실제 실행 2회(출력은 scratchpad `--root`). **실행 시간**: 파이프라인 114초(Gradle 포함 125~132초, NFR-1 충족). **결과**: 수집 1,100건 → 정제 999건(기간 밖 91·중복 10) → 선정 25건, 2곳 이상 보도 사안 20/25, 정치·사회 상위는 3사 공동 보도. **본문 요약 비율**: 1차 18/25(72%) → 보정 후 20/25(80%). 미달 원인은 경향 403(IP 빈도 제한) 3건과 연합 [속보](본문 없음) 2건 → [속보]는 대표에서 제외하도록 보정, 경향은 T-038에서 관찰. **조정한 값**: ① `hostDelayMillis`(신규 설정) 경향 10초 ② IT 키워드 필터를 동아·경향 과학 피드에도 적용(날씨·제약 기사 제거)+IT 키워드 14개 추가 ③ 불용어 17개 추가(대통령·내년·분기 등) ④ 글자 10자 미만 요약은 NONE(연합 속보 RSS 설명문이 "(" 한 글자) ⑤ 대표 기사 선정에서 [속보] 후순위 ⑥ RSS 링크의 공백 인코딩(동아 `/news/K-TECH Global Leaders/…` 링크가 버려지던 문제) ⑦ `./gradlew run` 로그 UTF-8 출력(Windows 한글 깨짐). 클러스터 임계값 0.4는 실제 데이터에서 3사 묶음이 잘 되어 유지. **화면**: 헤드리스 Chrome으로 360px iframe에서 라이트·다크·JS 끔 모두 `scrollWidth 345 = clientWidth 345`(가로 스크롤 없음, SC7), 스크린샷으로 라이트·다크 가독성 확인. "같은 사안" 구분점 밑줄 CSS 수정. **한계**: 경향 RSS 설명문 앞에 사진 설명이 붙어 RSS 대체 요약 품질이 낮음 |
+| T-035 | 일일 워크플로(daily-news.yml) | G11 | Yes | Done | `.github/workflows/daily-news.yml` 작성, YAML 구조 검증(트리거 schedule `0 0 * * *`+workflow_dispatch, 최상위 `permissions: {}`, job별 최소 권한, concurrency). plan §10.3 그대로: checkout(main, 배포 키) → JDK 21 → setup-gradle → `./gradlew run` → `git add -A news site README.md` → 변경 없으면 종료 → 커밋(`news: YYYY-MM-DD daily newsletter`, 작성자 `vars.NEWS_COMMIT_NAME/EMAIL`, TZ=Asia/Seoul) → pull --rebase 후 push 3회 재시도 → upload-pages-artifact → deploy-pages. plan 대비: 앞에 **`check` job**을 추가해 배포 키·Variables가 없으면 실패 대신 경고를 남기고 건너뜀(설정 전 매일 실패 알림 방지). 비밀값은 env로만 전달하고 출력하지 않음. 실제 동작 확인은 T-037(사용자 설정 후) |
+| T-036 | GitHub 1회 설정 가이드 | G11 | Yes | Done | `docs/feature/daily-news/setup-guide.md` 작성: 저장소·브랜치, 배포 키 생성·등록(공개키 write, 개인키 Secret `NEWS_DEPLOY_KEY`), Variables(noreply 이메일 확인법), Pages Source=GitHub Actions, main Ruleset(PR 필수·`test` 체크·force push 차단·삭제 금지·Bypass Deploy keys), Bypass 메뉴가 없을 때 PAT 대안(R3), 수동 실행 방법, 11개 항목 체크리스트, 문제 해결 표. 웹 화면 경로와 `gh` CLI 명령을 함께 제공. 사용자 결정에 따라 실제 설정은 사용자가 수행 |
+| T-037 | 첫 PR 병합·수동 실행 E2E | G11 | Yes | Blocked | **사용자 수행 대기**(사용자 결정: GitHub 설정은 가이드만 작성). 코드 PR 병합은 이번 작업에서 수행. 남은 일: `setup-guide.md` 2~5단계(배포 키·Variables·Pages·Ruleset) 설정 → Actions에서 daily-news 수동 실행 → 체크리스트 확인(뉴스 커밋·작성자·Pages URL·잔디·main 직접 push 거부). Pages 예정 주소: https://kim-hani.github.io/daily_news/ |
+| T-038 | 7일 연속 운영 관찰 | G11 | Yes | Blocked | **T-037 이후 7일 운영 필요**(현재 시점에 수행 불가). 매일 기록할 항목: 예약 실행 시작·커밋 시각(10:00 이전), 잔디, 카테고리별 기사 수, 본문 요약 비율(경향 빈도 제한 영향 주시), 실패 피드, Actions 사용 시간 |
+| T-039 | JS 탭 전환(점진적 향상) | G12 | No | Done | T-026에서 함께 구현(`static/tabs.js`, 템플릿 ARIA). `role=tablist/tab/tabpanel`, `aria-controls`·`aria-labelledby`·`aria-selected`, roving tabindex, ←/→(순환)·Home·End, 클릭 시 `#해시` 갱신, 주소의 해시로 초기 탭 선택. JS가 없으면 앵커 이동·모든 섹션 표시. 렌더 테스트(`HtmlRendererTest` 탭 ARIA 1개)와 헤드리스 Chrome 점검(초기 정치 → → 사회 → End 글로벌 → → 정치(순환) → ← 글로벌, 클릭 경제·`#economy`, 선택 1개, tabindex 0 하나, JS 끔이면 패널 5개 모두 표시)으로 확인. 스크립트는 인라인 대신 별도 파일(`assets/tabs.js`, defer)로 두어 템플릿 처리와 분리 |
 
 ---
 

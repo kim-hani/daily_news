@@ -13,6 +13,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class HostThrottleTest {
@@ -23,7 +24,8 @@ class HostThrottleTest {
     private final List<Duration> sleeps = new ArrayList<>();
     private final FakeHttpFetcher delegate = new FakeHttpFetcher()
             .fail("https://down.example.com/feed.xml", new ConnectException("연결 실패"));
-    private final HostThrottle throttle = new HostThrottle(delegate, DELAY, clock, duration -> {
+    private final HostThrottle throttle = new HostThrottle(delegate, DELAY,
+            Map.of("slow.example.com", Duration.ofSeconds(10)), clock, duration -> {
         sleeps.add(duration);
         clock.advance(duration);
     });
@@ -73,6 +75,16 @@ class HostThrottleTest {
         throttle.fetch(URI.create("https://down.example.com/other.xml"));
 
         assertThat(sleeps).containsExactly(DELAY);
+    }
+
+    @Test
+    void 호스트별로_정한_간격이_있으면_그_간격을_쓴다() throws IOException {
+        throttle.fetch(URI.create("https://slow.example.com/1"));
+        throttle.fetch(URI.create("https://slow.example.com/2"));
+        throttle.fetch(URI.create("https://a.example.com/1"));
+        throttle.fetch(URI.create("https://a.example.com/2"));
+
+        assertThat(sleeps).containsExactly(Duration.ofSeconds(10), DELAY);
     }
 
     /** 테스트에서 시각을 직접 옮기는 Clock */

@@ -28,12 +28,15 @@ class ModelImmutabilityTest {
         feeds.put(Category.POLITICS, URI.create("https://a.example.com/politics.xml"));
         Set<Category> filterFeeds = new HashSet<>(Set.of(Category.GLOBAL));
 
-        Source source = new Source("a", "A일보", "div", patterns, feeds, filterFeeds);
+        Source source = new Source("a", "A일보", List.of("A.example.com"), "div", patterns, feeds, filterFeeds);
         patterns.clear();
         feeds.clear();
         filterFeeds.clear();
 
         assertThat(source.creditPatterns()).hasSize(1);
+        assertThat(source.domains()).containsExactly("a.example.com");
+        assertThat(source.ownsHost("WWW.A.example.com")).isTrue();
+        assertThat(source.ownsHost("xa.example.com")).isFalse();
         assertThat(source.feeds().keySet()).containsExactly(Category.POLITICS, Category.GLOBAL);
         assertThat(source.itKeywordFilterFeeds()).containsExactly(Category.GLOBAL);
         assertThatThrownBy(() -> source.feeds().clear()).isInstanceOf(UnsupportedOperationException.class);
@@ -42,7 +45,7 @@ class ModelImmutabilityTest {
 
     @Test
     void Source는_빈_컬렉션도_받는다() {
-        Source source = new Source("a", "A일보", "div", List.of(), Map.of(), Set.of());
+        Source source = new Source("a", "A일보", List.of("a.example.com"), "div", List.of(), Map.of(), Set.of());
 
         assertThat(source.feeds()).isEmpty();
         assertThat(source.itKeywordFilterFeeds()).isEmpty();
@@ -68,7 +71,7 @@ class ModelImmutabilityTest {
         sections.put(Category.POLITICS, List.of(newsItem(Category.POLITICS)));
         List<String> keywords = new ArrayList<>(List.of("예산안"));
 
-        Newsletter newsletter = new Newsletter(LocalDate.of(2026, 10, 28), NOW, sections, keywords, emptyStats());
+        Newsletter newsletter = new Newsletter(LocalDate.of(2026, 10, 28), NOW, List.of("A일보"), sections, keywords, emptyStats());
         globalItems.clear();
         sections.clear();
         keywords.clear();
@@ -92,7 +95,7 @@ class ModelImmutabilityTest {
     }
 
     private static Source source() {
-        return new Source("a", "A일보", "div", List.of(), Map.of(), Set.of());
+        return new Source("a", "A일보", List.of("a.example.com"), "div", List.of(), Map.of(), Set.of());
     }
 
     private static Article article(String title) {

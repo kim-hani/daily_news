@@ -17,7 +17,9 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -31,6 +33,7 @@ public final class ConfigLoader {
     static final String DEFAULT_RESOURCE = "sources.yml";
 
     private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
+    private static final Pattern DOMAIN = Pattern.compile("(?i)[a-z0-9-]+(\\.[a-z0-9-]+)+");
 
     private ConfigLoader() {
     }
@@ -80,6 +83,7 @@ public final class ConfigLoader {
     private static AppConfig toAppConfig(RawConfig raw) {
         String userAgent = requireText(raw.userAgent(), "userAgent");
         int requestDelayMillis = requireAtLeast(raw.requestDelayMillis(), 0, "requestDelayMillis");
+        Map<String, Integer> hostDelayMillis = toHostDelays(raw.hostDelayMillis());
         int timeoutSeconds = requireAtLeast(raw.timeoutSeconds(), 1, "timeoutSeconds");
         int windowHours = requireAtLeast(raw.windowHours(), 1, "windowHours");
         int perCategory = requireAtLeast(raw.perCategory(), 1, "perCategory");
@@ -88,8 +92,25 @@ public final class ConfigLoader {
         List<Source> sources = toSources(raw.sources());
         List<String> itKeywords = textList(raw.itKeywords(), "itKeywords");
         List<String> stopwords = textList(raw.stopwords(), "stopwords");
-        return new AppConfig(userAgent, requestDelayMillis, timeoutSeconds, windowHours, perCategory,
-                clusterThreshold, retention, sources, itKeywords, stopwords);
+        String siteUrl = toHttpUri(raw.siteUrl(), "siteUrl").toString();
+        String repositoryUrl = toHttpUri(raw.repositoryUrl(), "repositoryUrl").toString();
+        return new AppConfig(userAgent, requestDelayMillis, hostDelayMillis, timeoutSeconds, windowHours, perCategory,
+                clusterThreshold, retention, sources, itKeywords, stopwords, siteUrl, repositoryUrl);
+    }
+
+    private static Map<String, Integer> toHostDelays(Map<String, Integer> raw) {
+        Map<String, Integer> delays = new LinkedHashMap<>();
+        if (raw == null) {
+            return delays;
+        }
+        raw.forEach((host, millis) -> {
+            String path = "hostDelayMillis." + host;
+            if (!DOMAIN.matcher(host).matches()) {
+                throw new ConfigException(path + ": 호스트 형식이 아닙니다");
+            }
+            delays.put(host.toLowerCase(Locale.ROOT), requireAtLeast(millis, 0, path));
+        });
+        return delays;
     }
 
     private static AppConfig.Retention toRetention(RawRetention raw) {
@@ -124,12 +145,33 @@ public final class ConfigLoader {
         String id = requireText(raw.id(), "sources[" + index + "].id");
         String path = "sources[" + id + "]";
         String name = requireText(raw.name(), path + ".name");
+        List<String> domains = toDomains(raw.domains(), path + ".domains");
         String bodySelector = requireText(raw.bodySelector(), path + ".bodySelector");
         List<Pattern> creditPatterns = compilePatterns(raw.creditPatterns(), path + ".creditPatterns");
         Map<Category, URI> feeds = toFeeds(raw.feeds(), path + ".feeds");
         Set<Category> itKeywordFilterFeeds = toFilterFeeds(raw.itKeywordFilterFeeds(), feeds.keySet(),
                 path + ".itKeywordFilterFeeds");
-        return new Source(id, name, bodySelector, creditPatterns, feeds, itKeywordFilterFeeds);
+        Source source = new Source(id, name, domains, bodySelector, creditPatterns, feeds, itKeywordFilterFeeds);
+        source.feeds().forEach((category, feed) -> {
+            if (!source.ownsHost(feed.getHost())) {
+                throw new ConfigException(path + ".feeds." + category + ": 피드 호스트가 domains에 속하지 않습니다: "
+                        + feed.getHost());
+            }
+        });
+        return source;
+    }
+
+    private static List<String> toDomains(List<String> raw, String path) {
+        List<String> domains = textList(raw, path);
+        if (domains.isEmpty()) {
+            throw new ConfigException(path + ": 도메인이 하나 이상 있어야 합니다");
+        }
+        for (int i = 0; i < domains.size(); i++) {
+            if (!DOMAIN.matcher(domains.get(i)).matches()) {
+                throw new ConfigException(path + "[" + i + "]: 도메인 형식이 아닙니다: " + domains.get(i));
+            }
+        }
+        return domains;
     }
 
     private static Map<Category, URI> toFeeds(Map<Category, String> raw, String path) {
@@ -227,10 +269,12 @@ public final class ConfigLoader {
     }
 
     /** sources.yml 최상위 구조 */
-    private record RawConfig(String userAgent, Integer requestDelayMillis, Integer timeoutSeconds,
+    private record RawConfig(String userAgent, Integer requestDelayMillis, Map<String, Integer> hostDelayMillis,
+                             Integer timeoutSeconds,
                              Integer windowHours, Integer perCategory, Double clusterThreshold,
                              RawRetention retention, List<SourceConfig> sources,
-                             List<String> itKeywords, List<String> stopwords) {
+                             List<String> itKeywords, List<String> stopwords, String siteUrl,
+                             String repositoryUrl) {
     }
 
     private record RawRetention(Integer siteArchiveDays, Integer newsDays) {

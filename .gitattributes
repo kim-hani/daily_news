@@ -2,3 +2,5 @@
 gradlew text eol=lf
 *.bat text eol=crlf
 *.jar binary
+# 테스트 fixture·golden file은 렌더 결과(LF)와 바이트 단위로 비교하므로 LF로 고정
+src/test/resources/** text eol=lf

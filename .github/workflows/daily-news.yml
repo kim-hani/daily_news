@@ -1,0 +1,96 @@
+name: daily-news
+
+# 매일 09:00 KST에 뉴스레터를 만들어 main에 커밋하고 GitHub Pages로 배포한다(FR-1, FR-8).
+# 처음 쓰기 전에 docs/feature/daily-news/setup-guide.md의 GitHub 설정이 필요하다.
+on:
+  schedule:
+    - cron: "0 0 * * *"   # 00:00 UTC = 09:00 KST (FR-1.1)
+  workflow_dispatch: {}    # 수동 실행 (FR-1.2)
+
+permissions: {}
+
+concurrency:
+  group: daily-news
+  cancel-in-progress: false
+
+jobs:
+  # 배포 키·커밋 작성자 설정이 없으면 실패 대신 경고를 남기고 건너뛴다(설정 전 매일 실패 알림 방지).
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - id: check
+        env:
+          DEPLOY_KEY: ${{ secrets.NEWS_DEPLOY_KEY }}
+          COMMIT_NAME: ${{ vars.NEWS_COMMIT_NAME }}
+          COMMIT_EMAIL: ${{ vars.NEWS_COMMIT_EMAIL }}
+        run: |
+          if [ -n "$DEPLOY_KEY" ] && [ -n "$COMMIT_NAME" ] && [ -n "$COMMIT_EMAIL" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::NEWS_DEPLOY_KEY, NEWS_COMMIT_NAME, NEWS_COMMIT_EMAIL 중 빠진 설정이 있어 건너뜁니다. docs/feature/daily-news/setup-guide.md를 참고하세요."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: check
+    if: needs.check.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read          # push는 배포 키(SSH)로 한다
+    env:
+      TZ: Asia/Seoul          # 커밋 메시지 날짜와 출력 날짜를 KST로 (FR-1.3)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          ssh-key: ${{ secrets.NEWS_DEPLOY_KEY }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4   # 의존성 캐시(KOMORAN 포함)
+
+      - name: Generate newsletter
+        run: ./gradlew run --no-daemon         # 수집 0건이면 종료 코드 1 → 이후 단계(커밋·배포) 생략 (NFR-2)
+
+      - name: Commit and push to main
+        env:
+          COMMIT_NAME: ${{ vars.NEWS_COMMIT_NAME }}
+          COMMIT_EMAIL: ${{ vars.NEWS_COMMIT_EMAIL }}
+        run: |
+          git config user.name "$COMMIT_NAME"
+          git config user.email "$COMMIT_EMAIL"
+          git add -A news site README.md        # 보관 기간이 지나 삭제된 파일도 스테이징
+          if git diff --cached --quiet; then    # FR-8.3
+            echo "변경 사항이 없어 커밋하지 않습니다"
+            exit 0
+          fi
+          git commit -m "news: $(date +%F) daily newsletter"
+          for attempt in 1 2 3; do
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep 5
+          done
+          exit 1
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

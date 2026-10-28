@@ -8,6 +8,7 @@ import dailynews.model.Source;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -19,6 +20,8 @@ class ConfigLoaderTest {
 
     private static final String VALID = """
             userAgent: "TestBot/1.0"
+            siteUrl: "https://example.github.io/news/"
+            repositoryUrl: "https://github.com/example/news"
             requestDelayMillis: 0
             timeoutSeconds: 5
             windowHours: 12
@@ -30,6 +33,7 @@ class ConfigLoaderTest {
             sources:
               - id: sample
                 name: 샘플일보
+                domains: [example.com]
                 bodySelector: "div.body"
                 creditPatterns: ['^\\(샘플\\)\\s*']
                 feeds:
@@ -48,6 +52,8 @@ class ConfigLoaderTest {
         AppConfig config = ConfigLoader.loadDefault();
 
         assertThat(config.sources()).extracting(Source::id).containsExactly("yonhap", "donga", "khan");
+        assertThat(config.sources()).extracting(Source::domains)
+                .containsExactly(List.of("yna.co.kr"), List.of("donga.com"), List.of("khan.co.kr"));
         assertThat(config.sources()).allSatisfy(source ->
                 assertThat(source.feeds().keySet()).containsExactly(Category.values()));
         assertThat(config.sources().stream().mapToInt(source -> source.feeds().size()).sum()).isEqualTo(15);
@@ -61,6 +67,7 @@ class ConfigLoaderTest {
 
         assertThat(config.userAgent()).startsWith("DailyNewsBot/1.0");
         assertThat(config.requestDelayMillis()).isEqualTo(1000);
+        assertThat(config.hostDelayMillis()).containsEntry("www.khan.co.kr", 10000);
         assertThat(config.timeoutSeconds()).isEqualTo(10);
         assertThat(config.windowHours()).isEqualTo(24);
         assertThat(config.perCategory()).isEqualTo(5);
@@ -68,6 +75,8 @@ class ConfigLoaderTest {
         assertThat(config.retention()).isEqualTo(new AppConfig.Retention(30, 0));
         assertThat(config.itKeywords()).contains("반도체", "SK하이닉스");
         assertThat(config.stopwords()).contains("기자");
+        assertThat(config.siteUrl()).isEqualTo("https://kim-hani.github.io/daily_news/");
+        assertThat(config.repositoryUrl()).isEqualTo("https://github.com/kim-hani/daily_news");
     }
 
     @Test
@@ -79,6 +88,9 @@ class ConfigLoaderTest {
         assertThat(yonhap.creditPatterns().getFirst()
                 .matcher("(서울=연합뉴스) 홍길동 기자 = 국회가 28일 본회의를 열었다.").replaceFirst(""))
                 .isEqualTo("국회가 28일 본회의를 열었다.");
+        assertThat(yonhap.creditPatterns().getFirst()
+                .matcher("(서울=연합뉴스) 김효정 전명훈 기자 = 한미 국방장관이 합의했다.").replaceFirst(""))
+                .isEqualTo("한미 국방장관이 합의했다.");
     }
 
     @Test
@@ -181,11 +193,27 @@ class ConfigLoaderTest {
                         VALID.replace("itKeywords:", """
                                   - id: sample
                                     name: 다른일보
+                                    domains: [example.com]
                                     bodySelector: "div"
                                     feeds:
                                       POLITICS: https://other.example.com/politics.xml
                                 itKeywords:"""),
                         "sources[1].id: 중복된 언론사 id입니다: sample"),
+                Arguments.of("domains 누락",
+                        VALID.replace("    domains: [example.com]\n", ""),
+                        "sources[sample].domains: 도메인이 하나 이상"),
+                Arguments.of("도메인 형식 오류",
+                        VALID.replace("domains: [example.com]", "domains: [\"https://example.com\"]"),
+                        "sources[sample].domains[0]: 도메인 형식이 아닙니다"),
+                Arguments.of("피드 호스트가 domains 밖",
+                        VALID.replace("https://news.example.com/it.xml", "https://news.other.com/it.xml"),
+                        "sources[sample].feeds.IT: 피드 호스트가 domains에 속하지 않습니다: news.other.com"),
+                Arguments.of("siteUrl이 http(s)가 아님",
+                        VALID.replace("https://example.github.io/news/", "example.github.io/news"),
+                        "siteUrl: http(s) URL만"),
+                Arguments.of("호스트별 간격 음수",
+                        VALID.replace("requestDelayMillis: 0", "requestDelayMillis: 0\nhostDelayMillis: {news.example.com: -1}"),
+                        "hostDelayMillis.news.example.com: 0 이상"),
                 Arguments.of("빈 파일", "", "설정이 비어 있습니다"));
     }
 

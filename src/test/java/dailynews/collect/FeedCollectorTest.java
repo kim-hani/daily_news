@@ -87,7 +87,7 @@ class FeedCollectorTest {
     @Test
     void robots_txt에_막힌_피드는_요청하지_않고_실패로_기록한다() {
         URI blockedFeed = URI.create("https://www.seoul.co.kr/xml/rss/rss_politics.xml");
-        Source seoul = new Source("seoul", "서울신문", "div", List.of(),
+        Source seoul = new Source("seoul", "서울신문", List.of("seoul.co.kr"), "div", List.of(),
                 Map.of(Category.POLITICS, blockedFeed), Set.of());
         List<Source> sources = new ArrayList<>(SOURCES);
         sources.add(seoul);
