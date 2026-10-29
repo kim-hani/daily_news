@@ -59,6 +59,7 @@ class ConfigLoaderTest {
         assertThat(config.sources().stream().mapToInt(source -> source.feeds().size()).sum()).isEqualTo(15);
         assertThat(config.sources()).flatExtracting(source -> source.feeds().values())
                 .allSatisfy(uri -> assertThat(uri.getScheme()).isEqualTo("https"));
+        assertThat(config.sources()).extracting(Source::fetchBody).containsExactly(true, true, false);
     }
 
     @Test
@@ -120,8 +121,19 @@ class ConfigLoaderTest {
 
         assertThat(config.sources().getFirst().creditPatterns()).isEmpty();
         assertThat(config.sources().getFirst().itKeywordFilterFeeds()).isEmpty();
+        assertThat(config.sources().getFirst().fetchBody()).isTrue();
         assertThat(config.itKeywords()).isEmpty();
         assertThat(config.stopwords()).isEmpty();
+    }
+
+    @Test
+    void 언론사별로_원문_가져오기를_끌_수_있다() throws IOException {
+        String yaml = VALID.replace("    itKeywordFilterFeeds: [IT]\n",
+                "    itKeywordFilterFeeds: [IT]\n    fetchBody: false\n");
+
+        AppConfig config = ConfigLoader.load(write(yaml));
+
+        assertThat(config.sources().getFirst().fetchBody()).isFalse();
     }
 
     @ParameterizedTest(name = "{0}")

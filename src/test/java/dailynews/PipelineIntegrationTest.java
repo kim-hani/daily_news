@@ -7,6 +7,7 @@ import dailynews.model.Category;
 import dailynews.model.NewsItem;
 import dailynews.model.Newsletter;
 import dailynews.model.RunStats;
+import dailynews.model.SummaryOrigin;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -69,11 +70,20 @@ class PipelineIntegrationTest {
     }
 
     @Test
-    void 본문_기반_요약이_90퍼센트_이상이다_SC4() {
-        RunStats stats = run().newsletter().stats();
+    void 원문을_받는_언론사_기사는_90퍼센트_이상_본문_기반_요약이다_SC4() {
+        Newsletter newsletter = run().newsletter();
+        RunStats stats = newsletter.stats();
+        List<NewsItem> items = newsletter.sections().values().stream().flatMap(List::stream).toList();
+        List<NewsItem> fetched = items.stream()
+                .filter(item -> item.story().representative().source().fetchBody())
+                .toList();
+        long fetchedBody = fetched.stream().filter(item -> item.summary().origin() == SummaryOrigin.BODY).count();
 
         assertThat(stats.bodyOk() + stats.bodyFallback()).isEqualTo(stats.selected());
-        assertThat((double) stats.bodyOk() / stats.selected()).isGreaterThanOrEqualTo(0.9);
+        assertThat(fetched).isNotEmpty();
+        assertThat((double) fetchedBody / fetched.size()).isGreaterThanOrEqualTo(0.9);
+        assertThat(items).filteredOn(item -> !item.story().representative().source().fetchBody())
+                .allSatisfy(item -> assertThat(item.summary().origin()).isNotEqualTo(SummaryOrigin.BODY));
     }
 
     @Test

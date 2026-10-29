@@ -155,5 +155,6 @@ Bypass 목록에서 Deploy keys를 고를 수 없으면 개인 액세스 토큰(
 | push 단계에서 `rule violation`/`permission denied` | 배포 키에 write 권한이 없거나 Ruleset Bypass에 Deploy keys가 없다 |
 | `deploy` job이 `environment protection rules`로 실패 | Settings → Environments → `github-pages`의 배포 브랜치 규칙에 `main`을 허용한다 |
 | Generate newsletter가 종료 코드 1 | 모든 피드 수집 실패(사이트 장애·차단). 로그의 `수집 실패` 줄을 확인한다. 커밋·배포는 하지 않는다 |
-| 경향 기사가 모두 "RSS 요약" | 경향 사이트의 빈도 제한(403). `sources.yml`의 `hostDelayMillis.www.khan.co.kr`를 늘린다 |
+| 경향 기사가 모두 "RSS 요약" | 정상 동작이다. 경향은 GitHub Actions 서버에서 오는 기사 요청을 첫 요청부터 403으로 막아서(RSS는 허용) `sources.yml`에서 `fetchBody: false`로 원문 요청을 껐다. 간격을 늘려도 풀리지 않는다 |
+| 다른 언론사 원문이 매번 403 | 요청 간격 문제면 `hostDelayMillis`에 그 호스트를 넣어 간격을 늘린다. 첫 요청부터 막히면 서버 IP 차단이므로 그 언론사에 `fetchBody: false`를 둔다 |
 | 실행이 수십 분 늦게 시작 | GitHub Actions 예약 실행의 정상 지연(A2). 반복되면 cron을 앞당긴다 |

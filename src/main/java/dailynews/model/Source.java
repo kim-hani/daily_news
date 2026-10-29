@@ -17,9 +17,16 @@ import java.util.regex.Pattern;
  * @param creditPatterns       본문 앞 크레디트(예: "(서울=연합뉴스) ○○○ 기자 =")를 지우는 정규식
  * @param feeds                카테고리별 RSS 주소. Category 순서를 따른다.
  * @param itKeywordFilterFeeds IT 키워드가 맞는 기사만 쓰는 피드의 카테고리
+ * @param fetchBody            기사 원문을 받아 요약하는지. false면 원문을 요청하지 않고 RSS 설명문으로 요약한다.
  */
 public record Source(String id, String name, List<String> domains, String bodySelector, List<Pattern> creditPatterns,
-                     Map<Category, URI> feeds, Set<Category> itKeywordFilterFeeds) {
+                     Map<Category, URI> feeds, Set<Category> itKeywordFilterFeeds, boolean fetchBody) {
+
+    /** 원문을 받아 요약하는 언론사 */
+    public Source(String id, String name, List<String> domains, String bodySelector, List<Pattern> creditPatterns,
+                  Map<Category, URI> feeds, Set<Category> itKeywordFilterFeeds) {
+        this(id, name, domains, bodySelector, creditPatterns, feeds, itKeywordFilterFeeds, true);
+    }
 
     public Source {
         domains = domains.stream().map(domain -> domain.toLowerCase(Locale.ROOT)).toList();

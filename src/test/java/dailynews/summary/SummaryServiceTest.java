@@ -41,7 +41,7 @@ class SummaryServiceTest {
             "https://www.donga.com/news/Politics/article/all/20261028/1/1", at(21, 0), RSS));
     private final Story yonhapBlocked = story(article(YONHAP, Category.IT, "영문 기사",
             "https://www.yna.co.kr/view/AEN20261028000100315", at(20, 0), RSS));
-    private final Story khanOk = story(article(KHAN, Category.IT, "다문화 우대 검토",
+    private final Story khanSkipped = story(article(KHAN, Category.IT, "다문화 우대 검토",
             "https://www.khan.co.kr/article/202610282137015", at(21, 37), RSS));
 
     @Test
@@ -51,10 +51,20 @@ class SummaryServiceTest {
         assertThat(result.sections().get(Category.POLITICS)).extracting(item -> item.summary().origin())
                 .containsExactly(SummaryOrigin.BODY, SummaryOrigin.RSS);
         assertThat(result.sections().get(Category.IT)).extracting(item -> item.summary().origin())
-                .containsExactly(SummaryOrigin.RSS, SummaryOrigin.BODY);
-        assertThat(result.bodyOk()).isEqualTo(2);
-        assertThat(result.bodyFallback()).isEqualTo(2);
+                .containsExactly(SummaryOrigin.RSS, SummaryOrigin.RSS);
+        assertThat(result.bodyOk()).isEqualTo(1);
+        assertThat(result.bodyFallback()).isEqualTo(3);
         assertThat(result.sections().get(Category.POLITICS).get(1).summary().text()).isEqualTo(RSS);
+    }
+
+    @Test
+    void 원문_가져오기를_끈_언론사는_원문을_요청하지_않고_RSS로_요약한다() {
+        assertThat(KHAN.fetchBody()).isFalse();
+
+        SummaryService.Result result = service.summarize(stories());
+
+        assertThat(result.sections().get(Category.IT).get(1).summary().text()).isEqualTo(RSS);
+        assertThat(fetcher.requests()).noneMatch(uri -> uri.getHost().equals("www.khan.co.kr"));
     }
 
     @Test
@@ -80,7 +90,7 @@ class SummaryServiceTest {
     private Map<Category, List<Story>> stories() {
         Map<Category, List<Story>> stories = new EnumMap<>(Category.class);
         stories.put(Category.POLITICS, List.of(yonhapOk, dongaMissing));
-        stories.put(Category.IT, List.of(yonhapBlocked, khanOk));
+        stories.put(Category.IT, List.of(yonhapBlocked, khanSkipped));
         return stories;
     }
 

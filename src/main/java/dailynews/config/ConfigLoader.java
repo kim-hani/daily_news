@@ -151,7 +151,9 @@ public final class ConfigLoader {
         Map<Category, URI> feeds = toFeeds(raw.feeds(), path + ".feeds");
         Set<Category> itKeywordFilterFeeds = toFilterFeeds(raw.itKeywordFilterFeeds(), feeds.keySet(),
                 path + ".itKeywordFilterFeeds");
-        Source source = new Source(id, name, domains, bodySelector, creditPatterns, feeds, itKeywordFilterFeeds);
+        boolean fetchBody = raw.fetchBody() == null || raw.fetchBody();
+        Source source = new Source(id, name, domains, bodySelector, creditPatterns, feeds, itKeywordFilterFeeds,
+                fetchBody);
         source.feeds().forEach((category, feed) -> {
             if (!source.ownsHost(feed.getHost())) {
                 throw new ConfigException(path + ".feeds." + category + ": 피드 호스트가 domains에 속하지 않습니다: "
