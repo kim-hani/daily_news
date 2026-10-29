@@ -6,7 +6,7 @@ siteUrl: "https://kim-hani.github.io/daily_news/"        # GitHub Pages 주소(R
 repositoryUrl: "https://github.com/kim-hani/daily_news"  # 아카이브 페이지의 Markdown 링크
 requestDelayMillis: 1000      # 같은 호스트에 연속 요청할 때 간격
 hostDelayMillis:              # 호스트별 간격(기본값보다 길게 둘 곳)
-  www.khan.co.kr: 10000       # 경향신문은 1초 간격 연속 요청에 403(빈도 제한)을 돌려줌(2026-10-28 확인)
+  www.khan.co.kr: 10000       # 경향신문은 1초 간격 연속 요청에 403을 돌려줌(2026-10-28 로컬 확인)
 timeoutSeconds: 10
 windowHours: 24               # 최근 몇 시간 안의 기사만 쓸지
 perCategory: 5                # 카테고리별 선정 기사 수
@@ -56,6 +56,9 @@ sources:
       IT: https://www.khan.co.kr/rss/rssdata/science_news.xml
       GLOBAL: https://www.khan.co.kr/rss/rssdata/kh_world.xml
     itKeywordFilterFeeds: [IT]          # 과학 피드에 날씨 기사가 섞여 IT 키워드로 거름(T-034)
+    # GitHub Actions에서는 기사 페이지가 첫 요청부터 모두 403이다(RSS는 200, 로컬은 같은 UA로 200 → 서버 IP 차단으로 판단, 2026-10-29).
+    # 매일 실패할 요청을 보내지 않고 RSS 설명문으로 요약한다. 생략하면 true.
+    fetchBody: false
 
 itKeywords: [AI, 인공지능, 반도체, 통신, 5G, 6G, 플랫폼, 앱, 소프트웨어, 보안, 해킹, 클라우드, 데이터센터,
              게임, 로봇, 우주, 배터리, 디스플레이, 네이버, 카카오, 삼성전자, SK하이닉스,

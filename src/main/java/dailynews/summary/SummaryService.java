@@ -20,7 +20,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 선정된 사안마다 대표 기사의 원문을 받아 요약한다(FR-5, NFR-8).
- * robots.txt가 막거나 요청이 실패하면 원문을 쓰지 않고 RSS 설명문으로 요약한다.
+ * 원문 가져오기를 끈 언론사({@link dailynews.model.Source#fetchBody()})는 원문을 요청하지 않는다.
+ * 이 경우와 robots.txt가 막거나 요청이 실패한 경우에는 RSS 설명문으로 요약한다.
  * 원문 요청은 대표 기사당 한 번뿐이다(NFR-1). 원문은 메모리에서만 쓰고 저장하지 않는다(NFR-4).
  */
 public final class SummaryService {
@@ -67,6 +68,9 @@ public final class SummaryService {
     }
 
     private List<String> fetchBody(Article article) {
+        if (!article.source().fetchBody()) {
+            return List.of();
+        }
         if (!robots.isAllowed(article.url())) {
             log.info("robots.txt가 막고 있어 원문을 받지 않습니다: {}", article.url());
             return List.of();
