@@ -2,7 +2,7 @@
 
 > 대상 저장소: `kim-hani/daily_news` · 기준: [plan.md §8, §10.2](./plan.md) · 작성일: 2026-10-28
 
-매일 09:00(KST)에 실행되는 `.github/workflows/daily-news.yml`이 동작하려면 아래 설정이 한 번 필요합니다.
+매일 12:00(KST)에 실행되는 `.github/workflows/daily-news.yml`이 동작하려면 아래 설정이 한 번 필요합니다.
 설정 전에는 워크플로가 **실패하지 않고 경고만 남긴 채 건너뜁니다**(`check` job). 그래서 설정을 미뤄도 매일 실패 메일이 오지 않습니다.
 
 | 순서 | 할 일 | 왜 필요한가 |
@@ -13,6 +13,7 @@
 | 4 | GitHub Pages 소스 설정 | `site/`를 웹페이지로 배포(FR-8.4) |
 | 5 | main Ruleset | 사람의 변경은 PR + 테스트 통과로만 main에 반영(FR-8.0) |
 | 6 | 수동 실행·확인 | 전체 흐름 점검(T-037) |
+| 7 | 외부 스케줄러(cron-job.org) 등록 | GitHub 예약 실행은 몇 시간씩 늦어서, 12:00 정시 실행은 외부에서 시작한다(FR-1.1) |
 
 웹 화면 경로와 함께 같은 작업을 하는 `gh` CLI 명령도 적었습니다. 둘 중 편한 방법을 쓰면 됩니다.
 
@@ -148,6 +149,57 @@ Bypass 목록에서 Deploy keys를 고를 수 없으면 개인 액세스 토큰(
 - [ ] 다음 날 프로필 잔디에 커밋이 반영됐다
 - [ ] 로컬에서 main에 직접 push하면 거부된다(`git push origin main` → rule violation)
 
+## 7. 12:00 정시 실행(외부 스케줄러)
+GitHub Actions의 `schedule`은 실행 시각을 보장하지 않습니다. 실제로 09:00 예약이 13:19에 시작되었습니다(2026-10-29·30).
+그래서 12:00 KST 실행은 무료 외부 스케줄러 **cron-job.org**가 GitHub API로 `workflow_dispatch`를 호출해 시작합니다.
+워크플로의 `schedule`(13:17 KST)은 이 호출이 실패한 날을 위한 백업이고, 그날 뉴스레터가 main에 이미 있으면 `check` job에서 건너뜁니다.
+
+### 7.1 토큰 발급
+Settings(계정) → Developer settings → Personal access tokens → **Fine-grained tokens** → **Generate new token**
+
+| 항목 | 값 |
+|---|---|
+| Token name | `daily-news-dispatch` |
+| Expiration | 원하는 기간(최대 1년). 만료일을 달력에 적어 둡니다 |
+| Repository access | **Only select repositories** → `kim-hani/daily_news` |
+| Repository permissions | **Actions: Read and write**(Metadata: Read-only는 자동). 나머지는 No access |
+
+- 발급된 `github_pat_…` 값은 한 번만 보이므로 바로 다음 단계에 씁니다. 저장소 Secrets에는 넣지 않습니다.
+- 이 토큰으로는 워크플로 실행만 할 수 있습니다. 코드나 뉴스 파일은 바꿀 수 없습니다.
+
+워크플로를 실행하지 않고 토큰만 확인하려면(200이면 정상):
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" -H "Authorization: Bearer <토큰>" \
+  https://api.github.com/repos/kim-hani/daily_news/actions/workflows/daily-news.yml
+```
+
+### 7.2 cron-job.org 작업 등록
+1. https://cron-job.org 에 가입하고 로그인합니다(무료).
+2. Dashboard → **Create cronjob**
+   - **COMMON** 탭
+     - Title: `daily-news 12:00 KST`
+     - URL: `https://api.github.com/repos/kim-hani/daily_news/actions/workflows/daily-news.yml/dispatches`
+     - Execution schedule: **Every day at 12 : 00**
+     - Notify me when execution fails: 켬
+   - **ADVANCED** 탭
+     - Time zone: **Asia/Seoul**
+     - Request method: **POST**
+     - Headers
+       | Key | Value |
+       |---|---|
+       | `Accept` | `application/vnd.github+json` |
+       | `Authorization` | `Bearer <7.1에서 발급한 토큰>` |
+       | `X-GitHub-Api-Version` | `2022-11-28` |
+       | `Content-Type` | `application/json` |
+     - Request body: `{"ref":"main"}`
+3. **Create**로 저장합니다. **TEST RUN**을 누르면 실제로 워크플로가 실행되어 그날 뉴스레터를 다시 만듭니다(내용이 같으면 커밋하지 않음).
+
+### 7.3 확인
+- [ ] cron-job.org History에서 12:00 실행의 응답이 **204 No Content**다
+- [ ] Actions → daily-news에 12:00~12:01에 시작한 `workflow_dispatch` 실행이 있고, 12:30 전에 `news: YYYY-MM-DD daily newsletter` 커밋이 생겼다
+- [ ] 같은 날 13:17 이후의 `schedule` 실행이 `check`에서 "이미 있어 백업 실행을 건너뜁니다"로 끝났다(지연되면 더 늦게 보일 수 있음)
+- [ ] 토큰 만료일 전에 새 토큰을 만들어 cron-job.org의 `Authorization` 헤더만 바꾼다
+
 ## 문제 해결
 | 증상 | 원인과 조치 |
 |---|---|
@@ -157,4 +209,7 @@ Bypass 목록에서 Deploy keys를 고를 수 없으면 개인 액세스 토큰(
 | Generate newsletter가 종료 코드 1 | 모든 피드 수집 실패(사이트 장애·차단). 로그의 `수집 실패` 줄을 확인한다. 커밋·배포는 하지 않는다 |
 | 경향 기사가 모두 "RSS 요약" | 정상 동작이다. 경향은 GitHub Actions 서버에서 오는 기사 요청을 첫 요청부터 403으로 막아서(RSS는 허용) `sources.yml`에서 `fetchBody: false`로 원문 요청을 껐다. 간격을 늘려도 풀리지 않는다 |
 | 다른 언론사 원문이 매번 403 | 요청 간격 문제면 `hostDelayMillis`에 그 호스트를 넣어 간격을 늘린다. 첫 요청부터 막히면 서버 IP 차단이므로 그 언론사에 `fetchBody: false`를 둔다 |
-| 실행이 수십 분 늦게 시작 | GitHub Actions 예약 실행의 정상 지연(A2). 반복되면 cron을 앞당긴다 |
+| 12:00 실행 없이 오후 늦게 `schedule` 실행이 뉴스레터를 만들었다 | 외부 호출 실패. cron-job.org History의 응답 코드를 확인한다. 백업 `schedule`은 GitHub 사정으로 몇 시간 늦을 수 있다(A2) |
+| cron-job.org 응답이 401 | 토큰이 만료되었거나 잘못 붙여 넣었다. 새 토큰을 만들어 `Authorization` 헤더를 바꾼다 |
+| cron-job.org 응답이 403/404 | 토큰에 `daily_news` 저장소나 **Actions: Read and write** 권한이 빠졌다. URL의 워크플로 파일 이름(`daily-news.yml`)도 확인한다 |
+| cron-job.org 응답이 422 | 본문이 `{"ref":"main"}`이 아니거나 `Content-Type: application/json` 헤더가 빠졌다 |

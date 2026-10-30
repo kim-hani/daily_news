@@ -1,6 +1,6 @@
 # 📰 Daily News
 
-매일 아침 9시(KST)에 국내 언론사 RSS를 모아 **정치 · 사회 · 경제 · IT · 글로벌** 5개 분야의 주요 기사를 골라 요약하는 뉴스레터입니다.
+매일 낮 12시(KST)에 국내 언론사 RSS를 모아 **정치 · 사회 · 경제 · IT · 글로벌** 5개 분야의 주요 기사를 골라 요약하는 뉴스레터입니다.
 GitHub Actions가 매일 자동으로 실행하고, 결과를 이 저장소에 커밋한 뒤 GitHub Pages로 게시합니다.
 
 - 웹에서 보기: https://kim-hani.github.io/daily_news/

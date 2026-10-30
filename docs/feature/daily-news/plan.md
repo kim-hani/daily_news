@@ -20,7 +20,7 @@
 | FR-8.1 뉴스 커밋 방식 | (a)/(b) 미정 | **(a) main에 직접 push** | 사용자 지시 |
 | 언론사 | 4곳 | **3곳**(연합·동아·경향) | 서울신문 robots.txt `/xml/` Disallow |
 | FR-7.2, FR-8.4 웹 출력 위치 | `docs/` | **`site/`** + Pages "GitHub Actions" 배포 | `docs/`에는 SDD 문서(spec/plan)가 있어서, 섞이면 문서까지 웹에 공개된다 |
-| NFR-5 비밀값 | 없음 | **배포 키 1개**(`NEWS_DEPLOY_KEY`) | main 보호 규칙을 일일 커밋만 우회하는 데 필요하다(§8) |
+| NFR-5 비밀값 | 없음 | **배포 키 1개**(`NEWS_DEPLOY_KEY`) + 외부 스케줄러용 토큰 1개(저장소 밖) | 배포 키는 main 보호 규칙을 일일 커밋만 우회하는 데 필요하다(§8). 토큰은 12:00 정시 실행을 위해 외부에서 `workflow_dispatch`를 호출하는 데 쓴다(R2) |
 | FR-7.5 보관 정책(신규) | — | **웹 날짜별 페이지 30일, Markdown 영구** | 사용자 결정. 공개 페이지에 오래된 인용이 남지 않게 하고, 기록은 Markdown으로 보존한다 |
 
 → `spec.md`의 해당 항목도 같이 갱신한다.
@@ -49,7 +49,8 @@
 단일 JVM 배치 프로그램이다. 하루 1회 실행되고, 서버도 DB도 없다. 상태는 git 저장소의 파일로만 남는다.
 
 ```
-GitHub Actions (cron 0 0 * * * = 09:00 KST)
+cron-job.org 12:00 KST → GitHub Actions workflow_dispatch
+(백업: schedule 17 4 * * * = 13:17 KST, 오늘 뉴스레터가 있으면 건너뜀)
         │
         ▼
 ┌──────────────────────────── DailyNewsApp (main) ────────────────────────────┐
@@ -293,9 +294,9 @@ daily_news/
 | 위험 | 대응 |
 |---|---|
 | main 보호와 자동 push의 충돌 | main에 **Repository Ruleset**을 건다: "Require a pull request before merging" + "Block force pushes". **Bypass list에는 Deploy key만 넣는다.** 일일 워크플로는 쓰기 권한이 있는 SSH 배포 키(`secrets.NEWS_DEPLOY_KEY`)로 checkout하고 push한다. 결과: 사람과 기능 변경은 PR로만, 뉴스 커밋만 main에 직접 들어간다(사용자 지시). |
-| 비밀값 노출 | 비밀값은 배포 키 1개뿐이고 GitHub Secrets에 저장한다. 코드와 로그에 출력하지 않는다. API 키는 쓰지 않는다. |
+| 비밀값 노출 | 저장소의 비밀값은 배포 키 1개뿐이고 GitHub Secrets에 저장한다. 코드와 로그에 출력하지 않는다. API 키는 쓰지 않는다. 외부 스케줄러의 토큰은 이 저장소 하나에 **Actions: Read and write**만 주고 만료일을 둔다(유출돼도 워크플로 실행만 가능). |
 | 커밋 이메일 공개(public 저장소) | 작성자 이메일은 저장소 Variables `NEWS_COMMIT_NAME`, `NEWS_COMMIT_EMAIL`로 주입한다. **GitHub noreply 주소**(`ID+username@users.noreply.github.com`)를 권장한다. 잔디에 그대로 집계되고 개인 메일은 노출되지 않는다. |
-| 워크플로 권한 | 기본 `permissions: {}`로 두고 job별로 최소 권한만 연다. Pages job: `pages: write`, `id-token: write`. 실행 job은 배포 키로 push하므로 `contents: read`. |
+| 워크플로 권한 | 기본 `permissions: {}`로 두고 job별로 최소 권한만 연다. Pages job: `pages: write`, `id-token: write`. 실행 job은 배포 키로 push하므로 `contents: read`. `check` job은 오늘 뉴스레터 존재 확인용 `contents: read`. |
 | XSS(외부 RSS 제목·설명 삽입) | Thymeleaf는 `th:text`만 쓴다(자동 이스케이프). `th:utext`는 금지한다. RSS 설명문은 `Jsoup.parse(..).text()`로 텍스트만 남긴다. |
 | 악성 링크(`javascript:` 등) | `UrlNormalizer`가 `http`/`https` 스킴과 설정된 언론사 호스트만 허용한다. 나머지 기사는 버린다. |
 | 대상 사이트 부담 / 정책 위반 | robots.txt 준수(`RobotsPolicy`), 호스트별 1초 간격, 하루 1회, 식별 가능한 User-Agent(NFR-3) |
@@ -343,12 +344,13 @@ daily_news/
    - Require pull request, Require status check `ci / test`, Block force push
    - **Bypass: Deploy keys**
 5. **Pages**: Settings → Pages → Source를 **GitHub Actions**로 설정
+6. **외부 스케줄러**: fine-grained 토큰(이 저장소, Actions: Read and write)을 만들고 cron-job.org에 매일 12:00(Asia/Seoul) `POST /repos/kim-hani/daily_news/actions/workflows/daily-news.yml/dispatches` 작업을 등록한다
 
 ### 10.3 `daily-news.yml` (요지)
 ```yaml
 on:
-  schedule: [{ cron: "0 0 * * *" }]   # 09:00 KST (FR-1.1)
-  workflow_dispatch: {}                # 수동 실행 (FR-1.2)
+  schedule: [{ cron: "17 4 * * *" }]  # 13:17 KST 백업 (FR-1.4)
+  workflow_dispatch: {}                # 외부 스케줄러 12:00 KST 호출 + 수동 실행 (FR-1.1, FR-1.2)
 permissions: {}
 concurrency: { group: daily-news, cancel-in-progress: false }
 jobs:
@@ -382,11 +384,12 @@ jobs:
       - id: d
         uses: actions/deploy-pages@v4
 ```
+- 12:00 정시 실행은 외부 스케줄러가 `workflow_dispatch`로 시작한다. 백업 `schedule` 실행은 `check` job에서 오늘(KST) `news/YYYY/MM/YYYY-MM-DD.md`가 main에 있으면 건너뛴다.
 - 예약 워크플로는 **main에 있는 파일 기준**으로 동작한다. 그래서 첫 PR이 병합되어야 스케줄이 활성화된다.
 - `ci.yml`: `on: pull_request` → checkout → setup-java 21 → `./gradlew test`
 
 ### 10.4 브랜치·릴리스 흐름
-`feature/*` → PR(`ci` 통과 필요) → main 병합 → 다음 09:00부터 새 코드로 실행. 뉴스 커밋(`news: YYYY-MM-DD …`)은 매일 main에 직접 쌓인다. 작업 브랜치는 PR 전에 main을 rebase하거나 merge해서 뉴스 커밋을 따라간다.
+`feature/*` → PR(`ci` 통과 필요) → main 병합 → 다음 12:00부터 새 코드로 실행. 뉴스 커밋(`news: YYYY-MM-DD …`)은 매일 main에 직접 쌓인다. 작업 브랜치는 PR 전에 main을 rebase하거나 merge해서 뉴스 커밋을 따라간다.
 
 ---
 
@@ -451,7 +454,7 @@ rootProject.name = 'daily_news'
 
 ## 12. 열린 이슈 / 리스크
 - **R1 사이트 구조 변경**: selector나 RSS가 바뀌면 요약이 RSS 설명문으로 대체된다. 실행은 계속되며, `liveTest`로 주기적으로 점검한다.
-- **R2 Actions 지연**: 정각 예약은 수십 분 늦을 수 있다. SC1 기준(10:00)으로 7일간 관찰하고, 늦어지면 cron을 앞당기는 것을 검토한다.
+- **R2 Actions 지연**: 정각 예약은 몇 시간씩 늦거나 빠질 수 있다(2026-10-29·30: 09:00 예약이 13:19에 시작). **대응(2026-10-30)**: 실행 시각을 12:00 KST로 옮기고, 외부 스케줄러(cron-job.org)가 `workflow_dispatch`를 호출해 정시에 시작한다. `schedule`은 13:17 KST 백업으로만 둔다. 외부 서비스·토큰 만료로 호출이 실패하면 백업이 늦게라도 그날 뉴스레터를 만든다.
 - **R3 Ruleset Bypass UI**: Deploy key를 bypass 대상으로 지정하는 메뉴를 설정할 때 확인해야 한다. 지정할 수 없으면 대안은 "Ruleset의 bypass에 Repository admin 역할 + 소유자 fine-grained PAT(contents: write)로 push"다. 이 경우 비밀값은 PAT로 바뀐다.
 - **R4 클러스터링 임계값(0.4)**: fixture와 실제 데이터로 조정한다. 값은 `sources.yml`에서 바꿀 수 있게 둔다.
 - **R5 IT 카테고리 표본 부족**: 경향 과학은 하루 3건 안팎이다. 연합 산업(키워드 필터)과 동아 과학이 주 공급원이고, 5건이 안 되면 FR-4.4에 따라 있는 만큼만 표시한다.

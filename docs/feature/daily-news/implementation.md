@@ -12,7 +12,7 @@
 
 | 항목 | 내용 |
 |---|---|
-| 하는 일 | 매일 09:00 KST에 연합뉴스·동아일보·경향신문의 RSS 15개를 모아 정치·사회·경제·IT·글로벌별 주요 사안 5개를 고르고, 원문 앞 문장으로 요약한 뉴스레터를 만든다 |
+| 하는 일 | 매일 12:00 KST에 연합뉴스·동아일보·경향신문의 RSS 15개를 모아 정치·사회·경제·IT·글로벌별 주요 사안 5개를 고르고, 원문 앞 문장으로 요약한 뉴스레터를 만든다 |
 | 결과물 | `news/YYYY/MM/YYYY-MM-DD.md`(영구 보관), `site/index.html`·`site/archive/YYYY-MM-DD.html`(30일 보관)·`site/archive.html`, `README.md` 최신 구간 |
 | 게시 | GitHub Actions가 main에 커밋하고 GitHub Pages로 배포(`daily-news.yml`) |
 | 기술 | Java 21, Gradle 9.8.2, Rome(RSS), jsoup(HTML), Thymeleaf(웹), KOMORAN(형태소), Jackson YAML(설정), JUnit 6 + AssertJ |
@@ -28,7 +28,7 @@
 ### 2.1 시스템 전체
 ```mermaid
 flowchart TD
-    cron["GitHub Actions<br/>schedule 0 0 * * * (09:00 KST)<br/>또는 수동 실행"] --> check{"check job<br/>배포 키·Variables 있음?"}
+    cron["cron-job.org 12:00 KST → workflow_dispatch<br/>백업 schedule 17 4 * * * (13:17 KST)<br/>또는 수동 실행"] --> check{"check job<br/>배포 키·Variables 있음?<br/>백업이면 오늘 뉴스레터 없음?"}
     check -- 없음 --> skip["경고만 남기고 종료"]
     check -- 있음 --> build["build job<br/>checkout(main, 배포 키) → JDK 21 → ./gradlew run"]
     build --> app["DailyNewsApp<br/>옵션·설정 읽기"]
@@ -262,7 +262,7 @@ G1~G4는 PR #1~#4로 병합했고, G5~G12는 이 문서와 함께 하나의 PR�
 ### G11. 배포·운영 (T-035~T-038)
 | 작업 | 상태 | 내용 |
 |---|---|---|
-| T-035 daily-news.yml | Done | plan §10.3대로 작성. 설정이 없으면 건너뛰는 `check` job을 추가 |
+| T-035 daily-news.yml | Done | plan §10.3대로 작성. 설정이 없으면 건너뛰는 `check` job을 추가. 2026-10-30: 12:00 KST 외부 트리거 + 13:17 백업 schedule로 변경, 백업은 오늘 뉴스레터가 있으면 건너뜀 |
 | T-036 설정 가이드 | Done | [setup-guide.md](./setup-guide.md): 배포 키·Variables·Pages·Ruleset·PAT 대안·체크리스트 |
 | T-037 첫 E2E | **Blocked** | 사용자 결정으로 GitHub 설정은 사용자가 직접 한다. 설정 후 수동 실행으로 확인 |
 | T-038 7일 관찰 | **Blocked** | T-037 이후 7일 운영이 필요하다 |
@@ -374,6 +374,6 @@ G1~G4는 PR #1~#4로 병합했고, G5~G12는 이 문서와 함께 하나의 PR�
 | 경향 RSS 대체 요약 품질 | 경향 RSS 설명문은 앞에 사진 설명이 붙어 있음 | 본문 요청이 성공하면 해당 없음. 대체 요약에서는 그대로 보임 |
 | 같은 사안 미묶음 | 표현이 크게 다르면(예: "SCM 개최" vs "안보협의회 연기") 따로 묶임 | 임계값은 설정값이다. 운영 결과를 보고 조정(R4) |
 | IT 표본 | IT 키워드 필터를 3사에 적용해서 날에 따라 5건 미만일 수 있음 | FR-4.4에 따라 있는 만큼만 표시 |
-| 예약 실행 지연 | GitHub Actions는 정각에 바로 시작하지 않을 수 있음(A2) | T-038에서 관찰하고 필요하면 cron을 앞당김 |
+| 예약 실행 지연 | GitHub Actions 예약은 몇 시간씩 늦거나 빠짐(10-29·30: 09:00 예약이 13:19 시작) | 12:00 KST에 외부 스케줄러가 `workflow_dispatch` 호출, `schedule`은 13:17 백업(A2, R2). 외부 토큰은 만료 전에 갱신 |
 | **T-037** | 배포 키·Variables·Pages·Ruleset 설정 후 수동 실행 | [setup-guide.md](./setup-guide.md)를 따라 사용자가 수행 |
 | **T-038** | 7일 연속 운영 관찰(SC1·SC2) | T-037 이후 |

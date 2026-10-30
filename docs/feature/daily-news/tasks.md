@@ -60,10 +60,10 @@
 | T-032 | 장애 시나리오 테스트 | G10 | Yes | Done | `PipelineFailureTest` 3개 통과. (a) 연합 피드 5개 모두 500 → 종료 코드 0, `failedFeeds` 5건, 5개 카테고리 모두 기사 있음, Markdown에 "수집하지 못한 피드" 표시(SC6). (b) 기사 본문 모두 404 → 종료 코드 0, 요약 전부 RSS, 웹에 "RSS 요약" 표시. (c) 피드 전부 503 → 종료 코드 1, `news/`·`site/` 미생성, 기존 README 그대로(NFR-2) |
 | T-033 | LiveFeedSmokeTest·liveTest 태스크 | G10 | Yes | Done | `@Tag("live")` `LiveFeedSmokeTest`(피드 15개: robots 허용·200·item 1개 이상, 피드별 첫 기사: robots 허용·200·본문 80자 이상). 운영과 같은 요청기(UA·호스트별 간격·robots). `./gradlew liveTest` 로컬 통과(15개 중 성공 10, 건너뜀 5), `./gradlew test`에서는 제외 확인. **실측**: 경향 기사 페이지는 연속 요청 시 IP를 몇 분간 403으로 막음(1초·10초 간격 모두, 첫 1~2건만 성공). 빈도 제한은 구조 변경이 아니므로 403·429는 실패 대신 assumption으로 **건너뜀** 처리. 1차 실행에서 IT 기사 1건이 200인데 본문 0자였으나 직후 403으로 바뀌어 차단 페이지로 판단 |
 | T-034 | 로컬 실제 실행·화면 점검·임계값 조정 | G10 | Yes | Done | 실제 실행 2회(출력은 scratchpad `--root`). **실행 시간**: 파이프라인 114초(Gradle 포함 125~132초, NFR-1 충족). **결과**: 수집 1,100건 → 정제 999건(기간 밖 91·중복 10) → 선정 25건, 2곳 이상 보도 사안 20/25, 정치·사회 상위는 3사 공동 보도. **본문 요약 비율**: 1차 18/25(72%) → 보정 후 20/25(80%). 미달 원인은 경향 403(IP 빈도 제한) 3건과 연합 [속보](본문 없음) 2건 → [속보]는 대표에서 제외하도록 보정, 경향은 T-038에서 관찰. **조정한 값**: ① `hostDelayMillis`(신규 설정) 경향 10초 ② IT 키워드 필터를 동아·경향 과학 피드에도 적용(날씨·제약 기사 제거)+IT 키워드 14개 추가 ③ 불용어 17개 추가(대통령·내년·분기 등) ④ 글자 10자 미만 요약은 NONE(연합 속보 RSS 설명문이 "(" 한 글자) ⑤ 대표 기사 선정에서 [속보] 후순위 ⑥ RSS 링크의 공백 인코딩(동아 `/news/K-TECH Global Leaders/…` 링크가 버려지던 문제) ⑦ `./gradlew run` 로그 UTF-8 출력(Windows 한글 깨짐). 클러스터 임계값 0.4는 실제 데이터에서 3사 묶음이 잘 되어 유지. **화면**: 헤드리스 Chrome으로 360px iframe에서 라이트·다크·JS 끔 모두 `scrollWidth 345 = clientWidth 345`(가로 스크롤 없음, SC7), 스크린샷으로 라이트·다크 가독성 확인. "같은 사안" 구분점 밑줄 CSS 수정. **한계**: 경향 RSS 설명문 앞에 사진 설명이 붙어 RSS 대체 요약 품질이 낮음 |
-| T-035 | 일일 워크플로(daily-news.yml) | G11 | Yes | Done | `.github/workflows/daily-news.yml` 작성, YAML 구조 검증(트리거 schedule `0 0 * * *`+workflow_dispatch, 최상위 `permissions: {}`, job별 최소 권한, concurrency). plan §10.3 그대로: checkout(main, 배포 키) → JDK 21 → setup-gradle → `./gradlew run` → `git add -A news site README.md` → 변경 없으면 종료 → 커밋(`news: YYYY-MM-DD daily newsletter`, 작성자 `vars.NEWS_COMMIT_NAME/EMAIL`, TZ=Asia/Seoul) → pull --rebase 후 push 3회 재시도 → upload-pages-artifact → deploy-pages. plan 대비: 앞에 **`check` job**을 추가해 배포 키·Variables가 없으면 실패 대신 경고를 남기고 건너뜀(설정 전 매일 실패 알림 방지). 비밀값은 env로만 전달하고 출력하지 않음. 실제 동작 확인은 T-037(사용자 설정 후) |
+| T-035 | 일일 워크플로(daily-news.yml) | G11 | Yes | Done | `.github/workflows/daily-news.yml` 작성, YAML 구조 검증(트리거 schedule `0 0 * * *`+workflow_dispatch → **2026-10-30 변경**: 12:00 KST 외부 스케줄러의 workflow_dispatch + 백업 schedule `17 4 * * *`, 백업은 오늘 뉴스레터가 main에 있으면 `check`에서 건너뜀, 최상위 `permissions: {}`, job별 최소 권한, concurrency). plan §10.3 그대로: checkout(main, 배포 키) → JDK 21 → setup-gradle → `./gradlew run` → `git add -A news site README.md` → 변경 없으면 종료 → 커밋(`news: YYYY-MM-DD daily newsletter`, 작성자 `vars.NEWS_COMMIT_NAME/EMAIL`, TZ=Asia/Seoul) → pull --rebase 후 push 3회 재시도 → upload-pages-artifact → deploy-pages. plan 대비: 앞에 **`check` job**을 추가해 배포 키·Variables가 없으면 실패 대신 경고를 남기고 건너뜀(설정 전 매일 실패 알림 방지). 비밀값은 env로만 전달하고 출력하지 않음. 실제 동작 확인은 T-037(사용자 설정 후) |
 | T-036 | GitHub 1회 설정 가이드 | G11 | Yes | Done | `docs/feature/daily-news/setup-guide.md` 작성: 저장소·브랜치, 배포 키 생성·등록(공개키 write, 개인키 Secret `NEWS_DEPLOY_KEY`), Variables(noreply 이메일 확인법), Pages Source=GitHub Actions, main Ruleset(PR 필수·`test` 체크·force push 차단·삭제 금지·Bypass Deploy keys), Bypass 메뉴가 없을 때 PAT 대안(R3), 수동 실행 방법, 11개 항목 체크리스트, 문제 해결 표. 웹 화면 경로와 `gh` CLI 명령을 함께 제공. 사용자 결정에 따라 실제 설정은 사용자가 수행 |
 | T-037 | 첫 PR 병합·수동 실행 E2E | G11 | Yes | Blocked | **사용자 수행 대기**(사용자 결정: GitHub 설정은 가이드만 작성). 코드 PR 병합은 이번 작업에서 수행. 남은 일: `setup-guide.md` 2~5단계(배포 키·Variables·Pages·Ruleset) 설정 → Actions에서 daily-news 수동 실행 → 체크리스트 확인(뉴스 커밋·작성자·Pages URL·잔디·main 직접 push 거부). Pages 예정 주소: https://kim-hani.github.io/daily_news/ |
-| T-038 | 7일 연속 운영 관찰 | G11 | Yes | Blocked | **T-037 이후 7일 운영 필요**(현재 시점에 수행 불가). 매일 기록할 항목: 예약 실행 시작·커밋 시각(10:00 이전), 잔디, 카테고리별 기사 수, 본문 요약 비율(경향 빈도 제한 영향 주시), 실패 피드, Actions 사용 시간 |
+| T-038 | 7일 연속 운영 관찰 | G11 | Yes | Blocked | **T-037 이후 7일 운영 필요**(현재 시점에 수행 불가). 매일 기록할 항목: 12:00 실행 시작·커밋 시각(12:30 이전, 백업 schedule 실행 여부), 잔디, 카테고리별 기사 수, 본문 요약 비율(경향 빈도 제한 영향 주시), 실패 피드, Actions 사용 시간 |
 | T-039 | JS 탭 전환(점진적 향상) | G12 | No | Done | T-026에서 함께 구현(`static/tabs.js`, 템플릿 ARIA). `role=tablist/tab/tabpanel`, `aria-controls`·`aria-labelledby`·`aria-selected`, roving tabindex, ←/→(순환)·Home·End, 클릭 시 `#해시` 갱신, 주소의 해시로 초기 탭 선택. JS가 없으면 앵커 이동·모든 섹션 표시. 렌더 테스트(`HtmlRendererTest` 탭 ARIA 1개)와 헤드리스 Chrome 점검(초기 정치 → → 사회 → End 글로벌 → → 정치(순환) → ← 글로벌, 클릭 경제·`#economy`, 선택 1개, tabindex 0 하나, JS 끔이면 패널 5개 모두 표시)으로 확인. 스크립트는 인라인 대신 별도 파일(`assets/tabs.js`, defer)로 두어 템플릿 처리와 분리 |
 
 ---
@@ -423,10 +423,11 @@
 ## G11. 배포·운영 (Medium)
 
 ### T-035 일일 워크플로(daily-news.yml)
-- **Purpose**: 매일 09:00 KST에 자동으로 실행·커밋·배포한다(FR-1.1, FR-1.2, FR-8, G1, G5).
+- **Purpose**: 매일 12:00 KST에 자동으로 실행·커밋·배포한다(FR-1.1, FR-1.2, FR-1.4, FR-8, G1, G5).
 - **Required**: Yes · **Depends**: T-030 · **Ref**: plan §10.3, §8
 - **작업**: plan §10.3대로 작성한다.
-  - 트리거: `schedule 0 0 * * *` + `workflow_dispatch`, `permissions: {}`, concurrency
+  - 트리거: `workflow_dispatch`(외부 스케줄러 12:00 KST 호출) + 백업 `schedule 17 4 * * *`, `permissions: {}`, concurrency
+  - check job: 설정 누락 시 경고 후 건너뜀, 백업 `schedule` 실행은 오늘 뉴스레터가 main에 있으면 건너뜀
   - build job: checkout(main, 배포 키) → setup-java 21 → setup-gradle → `./gradlew run` → `git add -A news site README.md` → 변경이 없으면 skip → commit → rebase 재시도 push → upload-pages-artifact
   - deploy job: `deploy-pages`(pages·id-token write)
   - 커밋 작성자는 `vars.NEWS_COMMIT_NAME`/`NEWS_COMMIT_EMAIL`이다.
@@ -458,13 +459,13 @@
 - **Purpose**: 성공 기준을 실제 운영으로 확인한다(SC1, SC2, SC3, SC8, R2).
 - **Required**: Yes · **Depends**: T-037 · **Ref**: spec §8
 - **작업**: 7일간 매일 다음을 기록한다.
-  - 예약 실행 시작 시각과 커밋 시각(10:00 이전인지)
+  - 실행 시작 시각과 커밋 시각(12:30 이전인지), 외부 트리거 대신 백업 schedule이 돈 날
   - 잔디 반영
   - 카테고리별 기사 수
   - 본문 요약 비율
   - 실패 피드
   - Actions 사용 시간(비용 0원 확인)
-- **완료 조건**: 7일 연속 수동 개입 없이 SC1·SC2를 충족한다. 지연이 반복되면 cron 조정 여부를 결정해서 Notes에 남긴다.
+- **완료 조건**: 7일 연속 수동 개입 없이 SC1·SC2를 충족한다. 외부 트리거가 실패해 백업이 돈 날이 있으면 원인(서비스 장애·토큰 만료)을 Notes에 남긴다.
 
 ---
 

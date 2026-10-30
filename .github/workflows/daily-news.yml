@@ -1,11 +1,13 @@
 name: daily-news
 
-# 매일 09:00 KST에 뉴스레터를 만들어 main에 커밋하고 GitHub Pages로 배포한다(FR-1, FR-8).
+# 매일 12:00 KST에 뉴스레터를 만들어 main에 커밋하고 GitHub Pages로 배포한다(FR-1, FR-8).
 # 처음 쓰기 전에 docs/feature/daily-news/setup-guide.md의 GitHub 설정이 필요하다.
+# GitHub 예약 실행은 몇 시간씩 늦거나 빠질 수 있어서, 12:00 정시 실행은 외부 스케줄러(cron-job.org)가
+# workflow_dispatch API를 호출해 시작한다(FR-1.1). schedule은 외부 호출이 실패한 날을 위한 백업이다.
 on:
   schedule:
-    - cron: "0 0 * * *"   # 00:00 UTC = 09:00 KST (FR-1.1)
-  workflow_dispatch: {}    # 수동 실행 (FR-1.2)
+    - cron: "17 4 * * *"  # 04:17 UTC = 13:17 KST 백업 (FR-1.4, 정각 혼잡을 피해 17분)
+  workflow_dispatch: {}    # 외부 스케줄러 12:00 KST 호출 + 수동 실행 (FR-1.1, FR-1.2)
 
 permissions: {}
 
@@ -15,8 +17,11 @@ concurrency:
 
 jobs:
   # 배포 키·커밋 작성자 설정이 없으면 실패 대신 경고를 남기고 건너뛴다(설정 전 매일 실패 알림 방지).
+  # 백업 schedule 실행은 오늘(KST) 뉴스레터가 이미 main에 있으면 건너뛴다(FR-1.4).
   check:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read          # 오늘 뉴스레터 파일 존재 확인
     outputs:
       ready: ${{ steps.check.outputs.ready }}
     steps:
@@ -25,13 +30,21 @@ jobs:
           DEPLOY_KEY: ${{ secrets.NEWS_DEPLOY_KEY }}
           COMMIT_NAME: ${{ vars.NEWS_COMMIT_NAME }}
           COMMIT_EMAIL: ${{ vars.NEWS_COMMIT_EMAIL }}
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
         run: |
-          if [ -n "$DEPLOY_KEY" ] && [ -n "$COMMIT_NAME" ] && [ -n "$COMMIT_EMAIL" ]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
+          if [ -z "$DEPLOY_KEY" ] || [ -z "$COMMIT_NAME" ] || [ -z "$COMMIT_EMAIL" ]; then
             echo "::warning::NEWS_DEPLOY_KEY, NEWS_COMMIT_NAME, NEWS_COMMIT_EMAIL 중 빠진 설정이 있어 건너뜁니다. docs/feature/daily-news/setup-guide.md를 참고하세요."
             echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          today="news/$(TZ=Asia/Seoul date +%Y/%m/%F).md"
+          if [ "$EVENT" = "schedule" ] && gh api "repos/$GITHUB_REPOSITORY/contents/$today?ref=main" --silent 2>/dev/null; then
+            echo "오늘 뉴스레터($today)가 이미 있어 백업 실행을 건너뜁니다"
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
 
   build:
     needs: check
