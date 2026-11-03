@@ -40,8 +40,13 @@ public final class FeedRenderer {
 
     public void write(Newsletter newsletter, OutputPaths paths) throws IOException {
         Formats.write(paths.siteToday(), render(newsletter, false));
-        Formats.write(paths.archivePage(newsletter.date()), render(newsletter, true));
+        writeArchive(newsletter, paths);
         SiteAssets.copy(paths);
+    }
+
+    /** 날짜별 페이지만 쓴다(today.html과 정적 자원은 건드리지 않는다). */
+    public void writeArchive(Newsletter newsletter, OutputPaths paths) throws IOException {
+        Formats.write(paths.archivePage(newsletter.date()), render(newsletter, true));
     }
 
     FeedPage page(Newsletter newsletter, boolean archive) {
