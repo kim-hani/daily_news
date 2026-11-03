@@ -9,6 +9,7 @@ import dailynews.model.Newsletter;
 import dailynews.model.RunStats;
 import dailynews.model.SummaryOrigin;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,13 +39,20 @@ class PipelineIntegrationTest {
 
         assertThat(result.exitCode()).isZero();
         assertThat(root.resolve("news/2026/10/2026-10-28.md")).exists();
-        assertThat(root.resolve("site/index.html")).exists();
-        assertThat(root.resolve("site/archive/2026-10-28.html")).exists();
-        assertThat(root.resolve("site/archive.html")).exists();
-        assertThat(root.resolve("site/assets/style.css")).exists();
+        for (String file : List.of("index.html", "today.html", "calendar.html", "archive.html", "archive/2026-10-28.html",
+                "data/archive.json", "assets/app.css", "assets/app.js", "assets/theme-init.js",
+                "assets/fonts/pretendard.css", "assets/fonts/LICENSE", "assets/fonts/PretendardVariable.subset.0.woff2",
+                "assets/style.css", "assets/tabs.js")) {
+            assertThat(root.resolve("site/" + file)).as(file).exists();
+        }
         assertThat(read("README.md")).contains("<!-- LATEST:START -->", "최신 뉴스레터: 2026-10-28 (수)",
                 "news/2026/10/2026-10-28.md", "<!-- LATEST:END -->");
-        assertThat(read("site/archive.html")).contains("archive/2026-10-28.html");
+        assertThat(read("site/calendar.html")).contains("archive/2026-10-28.html");
+        assertThat(read("site/archive.html")).contains("url=calendar.html");
+        assertThat(read("site/data/archive.json")).contains("\"dates\":[\"2026-10-28\"]");
+        Document home = Jsoup.parse(read("site/index.html"));
+        assertThat(home.select("a[data-cta=primary]").attr("href")).isEqualTo("today.html");
+        assertThat(home.select("p.latest time").attr("datetime")).isEqualTo("2026-10-28");
     }
 
     @Test
@@ -54,7 +62,7 @@ class PipelineIntegrationTest {
         assertThat(newsletter.sections().keySet()).containsExactly(Category.values());
         assertThat(newsletter.sections().values()).allSatisfy(items -> assertThat(items).isNotEmpty().hasSizeLessThanOrEqualTo(5));
 
-        Document page = Jsoup.parse(read("site/index.html"));
+        Document page = Jsoup.parse(read("site/today.html"));
         assertThat(page.select("main section.category")).hasSize(5);
     }
 
@@ -63,7 +71,7 @@ class PipelineIntegrationTest {
         Newsletter newsletter = run().newsletter();
         int selected = newsletter.stats().selected();
 
-        Document page = Jsoup.parse(read("site/index.html"));
+        Document page = Jsoup.parse(read("site/today.html"));
         assertThat(page.select("article.card")).hasSize(selected)
                 .allSatisfy(card -> assertThat(card.select("p.url a").text()).startsWith("https://"));
         assertThat(read("news/2026/10/2026-10-28.md").split("\n- 원문: https://", -1)).hasSize(selected + 1);
@@ -124,8 +132,27 @@ class PipelineIntegrationTest {
         try (Stream<Path> markdown = Files.walk(root.resolve("news"))) {
             assertThat(markdown.filter(path -> path.toString().endsWith(".md"))).hasSize(32);
         }
-        assertThat(read("site/archive.html")).doesNotContain(DATE.minusDays(30).toString())
+        assertThat(read("site/calendar.html")).doesNotContain(DATE.minusDays(30) + ".html")
+                .contains(DATE.minusDays(29) + ".html");
+        assertThat(read("site/data/archive.json")).doesNotContain(DATE.minusDays(30).toString())
                 .contains(DATE.minusDays(29).toString());
+    }
+
+    @Test
+    void 옛_디자인_날짜별_페이지가_있으면_캘린더가_그날_키워드를_읽는다_전환_기간() throws IOException {
+        Path old = root.resolve("site/archive/2026-10-27.html");
+        Files.createDirectories(old.getParent());
+        try (InputStream in = getClass().getResourceAsStream("/fixtures/archive/old-design.html")) {
+            Files.copy(in, old);
+        }
+
+        run();
+
+        Document calendar = Jsoup.parse(read("site/calendar.html"));
+        assertThat(calendar.selectFirst("a[href=archive/2026-10-27.html]").attr("aria-label"))
+                .contains("선정 25건", "키워드 AI·트럼프");
+        assertThat(calendar.selectFirst("a[href=archive/2026-10-28.html]").hasClass("latest")).isTrue();
+        assertThat(Files.readString(old, StandardCharsets.UTF_8)).contains("assets/style.css");
     }
 
     private DailyNewsPipeline.Result run() {

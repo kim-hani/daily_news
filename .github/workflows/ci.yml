@@ -25,5 +25,11 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # Tailwind 실행 파일(build.gradle downloadTailwind, SHA-256 검증)을 버전·해시가 바뀔 때만 다시 받는다.
+      - uses: actions/cache@v4
+        with:
+          path: build/tools/tailwind
+          key: tailwind-${{ runner.os }}-${{ hashFiles('gradle/tailwind.properties') }}
+
       - name: Test
         run: ./gradlew test --no-daemon

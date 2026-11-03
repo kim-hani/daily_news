@@ -49,7 +49,7 @@ class PipelineFailureTest {
         assertThat(result.exitCode()).isZero();
         assertThat(result.newsletter().stats().bodyOk()).isZero();
         assertThat(result.newsletter().stats().bodyFallback()).isEqualTo(result.newsletter().stats().selected());
-        assertThat(Files.readString(root.resolve("site/index.html"), StandardCharsets.UTF_8)).contains("RSS 요약");
+        assertThat(Files.readString(root.resolve("site/today.html"), StandardCharsets.UTF_8)).contains("RSS 요약");
     }
 
     @Test

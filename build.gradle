@@ -20,6 +20,7 @@ dependencies {
     implementation 'org.thymeleaf:thymeleaf:3.1.5.RELEASE'
     implementation 'com.github.shin285:KOMORAN:3.3.9'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.22.4'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.22.4'   // site/data/archive.json
     implementation 'org.slf4j:slf4j-api:2.0.20'
     runtimeOnly    'org.slf4j:slf4j-simple:2.0.20'
 
@@ -56,4 +57,138 @@ tasks.register('liveTest', Test) {
     useJUnitPlatform {
         includeTags 'live'
     }
+}
+
+// Tailwind standalone CLI: 버전·SHA-256은 gradle/tailwind.properties에 고정(plan §8 공급망, §10.1)
+def twProps = new Properties()
+file('gradle/tailwind.properties').withInputStream { twProps.load(it) }
+def twOs = System.getProperty('os.name').toLowerCase(Locale.ROOT)
+def twArch = System.getProperty('os.arch').toLowerCase(Locale.ROOT)
+def twX64 = twArch in ['amd64', 'x86_64']
+def twArm64 = twArch in ['aarch64', 'arm64']
+def twPlatform = twOs.contains('windows') && twX64 ? 'windows-x64'
+        : twOs.contains('linux') && twX64 ? 'linux-x64'
+        : twOs.contains('mac') && twArm64 ? 'macos-arm64'
+        : twOs.contains('mac') && twX64 ? 'macos-x64'
+        : null
+def twFileName = "tailwindcss-${twPlatform}${twPlatform == 'windows-x64' ? '.exe' : ''}"
+def twBinaryOverride = providers.gradleProperty('tailwindBinary')
+
+tasks.register('downloadTailwind', DownloadTailwind) {
+    description = 'Tailwind CLI를 내려받고 SHA-256을 검증한다(-PtailwindBinary=경로 로 대신할 수 있다)'
+    group = 'build setup'
+    platform = twPlatform ?: "${twOs}/${twArch}"
+    url = "https://github.com/tailwindlabs/tailwindcss/releases/download/v${twProps.version}/${twFileName}"
+    sha256 = twPlatform ? (twProps["sha256.${twPlatform}"] ?: '') : ''
+    binaryOverride = twBinaryOverride.map { file(it).absolutePath }
+    binary = layout.buildDirectory.file("tools/tailwind/${twProps.version}/${twFileName}")
+}
+
+// buildCss가 실행할 파일. -PtailwindBinary가 있으면 그 파일을 쓴다.
+def tailwindExecutable = twBinaryOverride.map { file(it) }
+        .orElse(tasks.named('downloadTailwind').flatMap { it.binary }.map { it.asFile })
+
+// 템플릿과 JS에 쓰인 Tailwind 클래스만 담은 app.css를 만들어 classpath static/에 넣는다(plan §3.1, §10.1).
+// 생성물은 build/ 아래에 있으므로 커밋하지 않는다.
+def generatedCssDir = layout.buildDirectory.dir('generated/css')
+tasks.register('buildCss', Exec) {
+    description = 'Tailwind CLI로 src/main/frontend/app.css를 빌드한다'
+    group = 'build'
+    dependsOn 'downloadTailwind'
+    def input = file('src/main/frontend/app.css')
+    def output = generatedCssDir.map { it.file('static/app.css') }
+    def twExe = tailwindExecutable
+    inputs.file(input)
+    inputs.dir('src/main/resources/templates')
+    inputs.file('src/main/resources/static/app.js')
+    inputs.property('tailwindVersion', twProps.version)
+    outputs.file(output)
+    workingDir = projectDir
+    argumentProviders.add({ ['-i', input.absolutePath, '-o', output.get().asFile.absolutePath, '--minify'] } as CommandLineArgumentProvider)
+    doFirst { executable(twExe.get().absolutePath) }
+}
+
+sourceSets.main.resources.srcDir(generatedCssDir)
+tasks.named('processResources') { dependsOn 'buildCss' }
+
+abstract class DownloadTailwind extends DefaultTask {
+    @Input abstract Property<String> getPlatform()
+    @Input abstract Property<String> getUrl()
+    @Input abstract Property<String> getSha256()
+    @Input @Optional abstract Property<String> getBinaryOverride()
+    @OutputFile abstract RegularFileProperty getBinary()
+
+    @TaskAction
+    void run() {
+        if (binaryOverride.present) {
+            def given = new File(binaryOverride.get())
+            if (!given.isFile()) {
+                throw new GradleException("-PtailwindBinary 파일이 없습니다: ${given}")
+            }
+            logger.lifecycle("Tailwind CLI: -PtailwindBinary 파일을 씁니다(내려받지 않음, 해시 검사 안 함): ${given}")
+            return
+        }
+        if (!sha256.get()) {
+            throw new GradleException("Tailwind CLI를 지원하지 않는 플랫폼입니다: ${platform.get()}. " +
+                    "-PtailwindBinary=<실행 파일 경로>로 직접 지정하세요.")
+        }
+
+        def target = binary.get().asFile
+        def expected = sha256.get().toLowerCase(Locale.ROOT)
+        if (target.isFile() && sha256Of(target) == expected) {
+            logger.lifecycle("Tailwind CLI: 이미 받은 파일의 해시가 맞습니다: ${target}")
+            target.setExecutable(true)
+            return
+        }
+
+        target.parentFile.mkdirs()
+        def part = new File(target.parentFile, target.name + '.part')
+        logger.lifecycle("Tailwind CLI 내려받는 중: ${url.get()}")
+        def client = java.net.http.HttpClient.newBuilder()
+                .followRedirects(java.net.http.HttpClient.Redirect.NORMAL)
+                .connectTimeout(java.time.Duration.ofSeconds(30))
+                .build()
+        def request = java.net.http.HttpRequest.newBuilder(URI.create(url.get())).GET().build()
+        def response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofFile(part.toPath()))
+        if (response.statusCode() != 200) {
+            part.delete()
+            throw new GradleException("Tailwind CLI 내려받기 실패(HTTP ${response.statusCode()}): ${url.get()}")
+        }
+
+        def actual = sha256Of(part)
+        if (actual != expected) {
+            part.delete()
+            target.delete()
+            throw new GradleException("Tailwind CLI SHA-256이 다릅니다. 파일을 지웠습니다.\n" +
+                    "  기대: ${expected}\n  실제: ${actual}\n  확인: gradle/tailwind.properties의 sha256.${platform.get()}")
+        }
+        java.nio.file.Files.move(part.toPath(), target.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        target.setExecutable(true)
+        logger.lifecycle("Tailwind CLI 검증 완료: ${target}")
+    }
+
+    private static String sha256Of(File f) {
+        def digest = java.security.MessageDigest.getInstance('SHA-256')
+        f.withInputStream { input ->
+            byte[] buf = new byte[1 << 16]
+            int n
+            while ((n = input.read(buf)) > 0) {
+                digest.update(buf, 0, n)
+            }
+        }
+        HexFormat.of().formatHex(digest.digest())
+    }
+}
+
+// 네트워크 없이 샘플 뉴스레터로 build/preview/site를 만든다(plan §9.2). 확인: 실행 결과에 나오는 jwebserver 명령(절대 경로)
+tasks.register('previewSite', JavaExec) {
+    description = '샘플 데이터로 미리보기 사이트(build/preview/site)를 만든다'
+    group = 'application'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'dailynews.render.PreviewSite'
+    def previewDir = layout.buildDirectory.dir('preview')
+    args previewDir.get().asFile.absolutePath
+    outputs.dir(previewDir)
+    outputs.upToDateWhen { false }
+    jvmArgs '-Dstdout.encoding=UTF-8', '-Dstderr.encoding=UTF-8'
 }

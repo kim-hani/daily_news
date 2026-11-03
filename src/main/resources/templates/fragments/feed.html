@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--/* 통계 숫자(counting-number). 최종 숫자는 처음부터 HTML에 있고(NFR-7) app.js가 화면에 들어올 때 0부터 센다.
+       세는 도중의 값을 스크린리더가 읽지 않도록 숫자 묶음은 aria-hidden이고, 같은 내용을 statsLine 문장으로 둔다. */-->
+<div th:fragment="stats(page)" class="stats-block mt-8">
+    <dl class="grid max-w-xl grid-cols-3 gap-2 sm:gap-3" aria-hidden="true">
+        <div th:each="stat, it : ${page.stats()}" class="rounded-card border border-border bg-card px-3 py-3 sm:px-4">
+            <dt class="text-xs font-medium text-muted-foreground" th:text="${stat.label()}">수집</dt>
+            <dd class="mt-1 text-2xl font-black tracking-tight tabular-nums sm:text-4xl"
+                th:classappend="${it.last} ? 'text-accent' : ''">
+                <span data-count-up th:attr="data-value=${stat.value()}" th:text="${stat.display()}">1,100</span>
+            </dd>
+        </div>
+    </dl>
+    <p class="stats mt-3 text-xs leading-relaxed text-muted-foreground" th:text="${page.statsLine()}">
+        수집 연합뉴스 · 동아일보 · 수집 512건 → 중복 제거 431건 → 선정 25건</p>
+</div>
+
+<!--/* 오늘의 키워드(base-badge, secondary·lg·circle 변형) */-->
+<div th:fragment="keywords(keywords)" class="keywords mt-8" th:if="${!keywords.isEmpty()}">
+    <h2 class="text-xs font-semibold text-muted-foreground">오늘의 키워드</h2>
+    <ul class="chips mt-3 flex flex-wrap gap-2" aria-label="오늘의 키워드">
+        <li th:each="keyword : ${keywords}"
+            class="badge inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-transparent bg-muted px-3 text-xs font-semibold text-foreground"
+            th:text="${keyword}">예산안</li>
+    </ul>
+</div>
+
+<!--/* 카테고리 탭(animated-navigation-tabs). 기존 tablist ARIA를 유지하고, JS가 없으면 섹션 앵커로 동작한다(FR-3.3).
+       framer-motion layoutId 막대는 [data-tabs-indicator] + CSS transition으로 바꿨다. */-->
+<div th:fragment="tabs(sections)"
+     class="tabs-bar sticky top-14 z-20 -mx-4 border-b border-border bg-background/90 backdrop-blur-md sm:-mx-6">
+    <div class="overflow-x-auto px-1 [scrollbar-width:none] sm:px-3">
+        <nav class="tabs relative flex w-max min-w-full" role="tablist" aria-label="카테고리">
+            <a th:each="section, status : ${sections}" class="tab" role="tab" th:id="|tab-${section.slug()}|"
+               th:href="|#${section.slug()}|"
+               th:attr="aria-controls=${section.slug()},aria-selected=${status.first}">
+                <span aria-hidden="true" th:text="${section.emoji()}">🏛</span>
+                <span th:text="${section.label()}">정치</span>
+                <span class="count rounded-full bg-muted px-1.5 text-[0.6875rem] font-semibold tabular-nums text-muted-foreground"><span
+                        th:text="${section.count()}">2</span><span class="visually-hidden">건</span></span>
+            </a>
+            <span class="tabs-indicator" data-tabs-indicator aria-hidden="true"></span>
+        </nav>
+    </div>
+</div>
+
+<!--/* 기사 카드(spotlight-card). 사진 없이 텍스트만 쓴다(spec C5). 순위 · 제목(가장 큼) · 메타 배지 · 요약 · 원문 URL · 같은 사안 */-->
+<article th:fragment="card(card)"
+         class="card spotlight rounded-card border border-border bg-card p-5 transition-colors hover:border-foreground/25 sm:p-6"
+         data-spotlight data-reveal>
+    <div class="relative flex gap-3 sm:gap-4">
+        <span class="rank w-6 shrink-0 text-right text-2xl leading-7 font-black tabular-nums text-accent"
+              th:text="${card.rank()}">1</span>
+        <div class="min-w-0 flex-1">
+            <h3 class="text-lg leading-snug font-bold tracking-tight sm:text-xl">
+                <a class="decoration-2 underline-offset-4 hover:underline" th:href="${card.url()}"
+                   rel="noopener noreferrer" th:text="${card.title()}">기사 제목</a>
+            </h3>
+            <p class="meta mt-3 flex flex-wrap items-center gap-1.5">
+                <span class="badge source inline-flex h-6 items-center rounded-full border border-border px-2.5 text-[0.6875rem] font-semibold text-foreground"
+                      th:text="${card.sourceName()}">연합뉴스</span>
+                <span class="badge time inline-flex h-6 items-center rounded-full border border-border px-2.5 text-[0.6875rem] font-medium text-muted-foreground"><time
+                        th:datetime="${card.isoTime()}" th:text="${card.time()}">08:12</time></span>
+                <span class="badge outlets inline-flex h-6 items-center rounded-full border border-accent/40 px-2.5 text-[0.6875rem] font-semibold text-accent"
+                      th:if="${card.outletCount() > 1}" th:text="|${card.outletCount()}개 언론사 보도|">3개 언론사 보도</span>
+            </p>
+            <blockquote class="mt-4 border-l-2 border-border pl-3 text-sm leading-relaxed text-muted-foreground"
+                        th:if="${!card.summary().isEmpty()}">
+                <p th:text="${card.summary()}">요약</p>
+                <p class="origin mt-1.5 text-xs font-semibold" th:if="${card.rssSummary()}">RSS 요약</p>
+            </blockquote>
+            <p class="url mt-4 flex items-start gap-1.5 text-xs text-muted-foreground">
+                <svg th:replace="~{fragments/icons :: external-link('mt-px size-3.5 shrink-0')}"></svg>
+                <a class="underline underline-offset-2 transition-colors hover:text-foreground" th:href="${card.url()}"
+                   rel="noopener noreferrer" th:text="${card.url()}">https://…</a>
+            </p>
+            <p class="related mt-3 text-xs text-muted-foreground" th:if="${!card.related().isEmpty()}">같은 사안:
+                <th:block th:each="link, it : ${card.related()}"><a
+                        class="font-medium text-foreground underline underline-offset-2" th:href="${link.url()}"
+                        rel="noopener noreferrer" th:text="${link.name()}">동아일보</a><span
+                        th:unless="${it.last}"> · </span></th:block>
+            </p>
+        </div>
+    </div>
+</article>
+
+</body>
+</html>

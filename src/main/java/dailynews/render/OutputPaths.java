@@ -28,8 +28,19 @@ public record OutputPaths(Path root) {
         return root.resolve("site");
     }
 
+    /** site/index.html(홈) */
     public Path siteIndex() {
         return siteDir().resolve("index.html");
+    }
+
+    /** site/today.html(오늘의 뉴스피드, 최신 뉴스레터) */
+    public Path siteToday() {
+        return siteDir().resolve("today.html");
+    }
+
+    /** site/calendar.html(캘린더 뉴스피드) */
+    public Path calendarPage() {
+        return siteDir().resolve("calendar.html");
     }
 
     public Path archiveDir() {
@@ -41,13 +52,27 @@ public record OutputPaths(Path root) {
         return archiveDir().resolve(date + ".html");
     }
 
-    /** site/archive.html(날짜 목록) */
+    /** site/archive.html(옛 주소. calendar.html로 리다이렉트) */
     public Path archiveIndex() {
         return siteDir().resolve("archive.html");
     }
 
     public Path assetsDir() {
         return siteDir().resolve("assets");
+    }
+
+    /** site/assets/fonts(Pretendard 서브셋) */
+    public Path fontsDir() {
+        return assetsDir().resolve("fonts");
+    }
+
+    public Path dataDir() {
+        return siteDir().resolve("data");
+    }
+
+    /** site/data/archive.json(보관 날짜 목록, 날짜별 페이지의 이전/다음 이동용) */
+    public Path archiveJson() {
+        return dataDir().resolve("archive.json");
     }
 
     public Path readme() {
