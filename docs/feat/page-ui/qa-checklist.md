@@ -92,6 +92,7 @@
 - 남은 확인: Edge, Firefox, Safari(iOS), Samsung Internet.
 
 ### 12. 전환 기간 (§3.3, SC3)
+- 2026-11-04 변경(T-031): 옛 디자인 페이지는 그날 Markdown이 있으면 새 디자인으로 다시 만든다. 배포 데이터 사본으로 10-29~11-02 5개 페이지가 모두 바뀌고, 기사 25건·통계·키워드·이전/다음 날짜 이동이 나오는 것을 확인했다. 아래는 Markdown이 없는 옛 페이지의 경우다.
 - 옛 디자인 `archive/2026-10-14.html`이 `assets/style.css`·`tabs.js`로 그대로 열린다. 캘린더는 이 날의 키워드·선정 수(25건)를 읽는다(PipelineIntegrationTest, CalendarRendererTest).
 - `archive.html`은 `calendar.html`로 리다이렉트한다.
 
@@ -101,3 +102,12 @@
 
 ### 14. 디자인 출처 (SC11)
 - `design-sources.md`에 9개 컴포넌트의 출처·라이선스·"바꾼 점"이 모두 있다. Pretendard·Lucide 고지도 있다.
+
+## 배포 후 점검(T-027) — 2026-11-03
+- 배포: PR #9 병합(`331bbdc`) → `daily-news` workflow_dispatch(run 41656108654) 성공, `3ef2a80 news: 2026-11-03 daily newsletter`. 폰트 92개가 `site/assets/fonts/`로 커밋됐다.
+- `/`, `/today.html`, `/calendar.html`, `/archive/2026-11-03.html`: 200, 새 디자인, Pretendard 적용, 412px 가로 스크롤 없음, 콘솔 오류 없음.
+- `/archive.html` → `/calendar.html` 리다이렉트. 캘린더 날짜 링크 6개(10-29~11-03) 모두 열리고, 최신 칸을 누르면 `archive/2026-11-03.html`로 간다. 날짜별 페이지의 이전 날짜 링크(archive.json)도 나온다.
+- 옛 디자인 `archive/2026-10-29~11-02.html`: `style.css`·`tabs.js`로 그대로 열린다. 이 페이지들은 아이콘 링크가 없어 브라우저가 `/favicon.ico`를 찾다 404를 낸다(기존과 같고 T-030 뒤 사라짐).
+- GitHub Pages가 HTML·CSS·JS를 gzip으로 보낸다(today.html 11.7KB, app.css 7.6KB, pretendard.css 13.6KB 전송).
+- Tailwind 캐시: main의 첫 실행이라 캐시가 없어 다시 받았고 저장했다. 다음 실행부터 적중한다.
+- **남은 것**: 배포 사이트 Lighthouse(모바일) 재측정, 키보드 일주, Slow 4G 깜빡임, 스크린리더, 다른 브라우저(휴대폰 포함).

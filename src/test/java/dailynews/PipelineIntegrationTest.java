@@ -155,6 +155,33 @@ class PipelineIntegrationTest {
         assertThat(Files.readString(old, StandardCharsets.UTF_8)).contains("assets/style.css");
     }
 
+    @Test
+    void 옛_디자인_날짜별_페이지는_그날_Markdown으로_새_디자인이_된다() throws IOException {
+        Path old = root.resolve("site/archive/2026-10-27.html");
+        Path markdown = root.resolve("news/2026/10/2026-10-27.md");
+        Files.createDirectories(old.getParent());
+        Files.createDirectories(markdown.getParent());
+        try (InputStream page = getClass().getResourceAsStream("/fixtures/archive/old-design.html");
+             InputStream md = getClass().getResourceAsStream("/fixtures/markdown/2026-11-02.md")) {
+            Files.copy(page, old);
+            Files.copy(md, markdown);
+        }
+
+        run();
+
+        Document page = Jsoup.parse(read("site/archive/2026-10-27.html"));
+        assertThat(page.selectFirst("link[href=../assets/app.css]")).isNotNull();
+        assertThat(page.selectFirst("meta[name=dn:selected]").attr("content")).isEqualTo("25");
+        assertThat(page.select("article.card")).hasSize(25);
+        Document calendar = Jsoup.parse(read("site/calendar.html"));
+        assertThat(calendar.selectFirst("a[href=archive/2026-10-27.html]").attr("aria-label"))
+                .contains("선정 25건", "키워드 AI·출시");
+        // Markdown은 바꾸지 않는다
+        try (InputStream md = getClass().getResourceAsStream("/fixtures/markdown/2026-11-02.md")) {
+            assertThat(read("news/2026/10/2026-10-27.md")).isEqualTo(new String(md.readAllBytes(), StandardCharsets.UTF_8));
+        }
+    }
+
     private DailyNewsPipeline.Result run() {
         return new DailyNewsPipeline(ConfigLoader.loadDefault(), FixtureWeb.withArticles(), FixtureWeb.CLOCK)
                 .run(DATE, root, false);

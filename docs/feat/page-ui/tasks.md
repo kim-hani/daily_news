@@ -50,10 +50,11 @@
 | T-023 | PageSafetyTest(전 페이지 공통 검사) | G7 | Yes | Done | 2026-11-03: `PageSafetyTest` 25개. 통합 실행 대신 `PreviewSite.build`(XSS 제목이 모든 뉴스피드에 있고 옛 디자인·두 달 포함)로 만든 사이트를 검사. `style="…"` 임시 삽입 시 실패 확인 후 제거 |
 | T-024 | AssetBudgetTest(자원 용량·폰트) | G7 | Yes | Done | 2026-11-03: `AssetBudgetTest`: app.css 7.3KB, app.js 약 4.2KB, theme-init.js 0.44KB(gzip). 합계에는 pretendard.css(13.4KB)도 넣음. @font-face 92개 모두 swap, 외부 url 없음, OFL LICENSE |
 | T-025 | 수동 점검 체크리스트 작성·수행 | G7 | Yes | Blocked | 2026-11-03: `qa-checklist.md` 작성·Playwright로 점검(가로 스크롤·JS 끄기·배경 전환·모션·히어로·터치 대상 통과, 점검 중 3건 수정). Lighthouse는 사용자가 DevTools로 측정: 접근성 모두 100, 캘린더 CLS 0.172 → 첫 화면 레이아웃 고정·한글 대체 글꼴 폭 맞춤으로 고쳐 재측정 통과. today LCP 3.1초는 jwebserver 무압축 영향으로 보고 배포 후 재측정. **남은 것**: 키보드 일주, Slow 4G 깜빡임, 스크린리더, Chromium 외 브라우저 |
-| T-026 | CI에 Tailwind 캐시 추가 | G8 | Yes | In Progress | 2026-11-03: `ci.yml`·`daily-news.yml`에 `actions/cache@v4`(build/tools/tailwind) 추가. PR을 열어야 CI 로그(linux-x64 해시 검증, 두 번째 실행 캐시 적중)를 확인할 수 있음 |
-| T-027 | PR·병합·workflow_dispatch 배포·배포 후 점검 | G8 | Yes | Todo | 2026-11-03: 사용자 확인 필요: PR 생성·병합·workflow_dispatch 실행은 외부에 영향을 주므로 승인 후 진행 |
+| T-026 | CI에 Tailwind 캐시 추가 | G8 | Yes | Done | 2026-11-03: `ci.yml`·`daily-news.yml`에 `actions/cache@v4`(build/tools/tailwind) 추가. PR #9 CI 통과: linux-x64 내려받기·해시 검증·buildCss 성공, 캐시 저장(`tailwind-Linux-0e2af4…`). 캐시는 브랜치별이라 main의 첫 daily-news 실행은 다시 받고, 그다음부터 적중한다 |
+| T-027 | PR·병합·workflow_dispatch 배포·배포 후 점검 | G8 | Yes | In Progress | 2026-11-03: PR #9 병합, workflow_dispatch 배포 성공. 모든 경로 200·새 디자인·리다이렉트·캘린더 링크·옛 디자인 페이지 확인(qa-checklist 배포 후 점검). **남은 것**: 배포 사이트 Lighthouse 재측정 |
 | T-028 | 카드 등장 애니메이션(FR-3.8) | G9 | No | Done | 2026-11-03: `[data-reveal]` + IntersectionObserver. 첫 화면 밖 요소에만 `pending`을 붙여 JS 실패·reduced-motion이면 처음부터 보임(`html.js` 대신 이 방식을 씀: theme-init만 성공하고 app.js가 실패해도 숨지 않게). CLS 0 |
 | T-029 | 캘린더 키워드 팝오버(FR-4.8) | G9 | No | Done | 2026-11-03: 캘린더 칸 키워드 3개 팝오버(CSS `:hover`/`:focus-visible`, `aria-hidden`). 첫·마지막 열은 칸 가장자리에 맞춤, 터치 기기는 띄우지 않음. 360px 가로 스크롤 없음 |
+| T-031 | 옛 디자인 날짜별 페이지를 Markdown으로 새 디자인 갱신 | G9 | Yes | Done | 2026-11-04: 사용자 요청(캘린더의 지난 날짜도 today와 같은 UI). `MarkdownNewsletterReader`(Markdown → Newsletter, 왕복 동일·CRLF 허용), `LegacyArchiveUpgrader`(dn:selected 없는 페이지만, Markdown 없거나 깨지면 그대로), 파이프라인 보관 정리 뒤·캘린더 앞에 연결. 테스트 11개 추가(376개 통과). 배포 데이터 사본으로 10-29~11-02 5개 페이지 모두 변환·25건 일치 확인 |
 | T-030 | 전환 기간 종료 후 옛 자원 정리 | G9 | No | Todo | D+30 이후(새 디자인 첫 실행일 기준) 별도 브랜치에서 진행 |
 
 ---

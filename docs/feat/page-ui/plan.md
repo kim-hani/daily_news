@@ -73,7 +73,10 @@
 
 ### 3.3 기존 날짜별 페이지와의 호환(전환 기간)
 
-배포 시점에 이미 있는 `site/archive/2026-10-29~31.html` 같은 페이지는 **옛 마크업 그대로** 남는다. 이 페이지들은 `assets/style.css`, `assets/tabs.js`를 쓰고 `archive.html`로 링크한다.
+배포 시점에 이미 있는 `site/archive/2026-10-29~31.html` 같은 페이지는 옛 마크업이다. 이 페이지들은 `assets/style.css`, `assets/tabs.js`를 쓰고 `archive.html`로 링크한다.
+
+- **옛 페이지 갱신(2026-11-04 추가)**: 파이프라인은 보관 정리 뒤 `LegacyArchiveUpgrader`로 `meta[name=dn:selected]`가 없는 날짜별 페이지를 찾아, 그날 Markdown(`news/YYYY/MM/날짜.md`)을 `MarkdownNewsletterReader`로 읽어 새 디자인으로 다시 만든다. Markdown에 없는 값(사안 점수, 본문 요약 통계)은 화면에 쓰이지 않는다. 기사 시각은 시:분만 있어 뉴스레터 날짜로 두고, 생성 시각보다 늦으면 전날로 본다. 이미 새 디자인인 페이지는 건드리지 않는다.
+- Markdown이 없거나 읽지 못한 옛 페이지만 아래 방식으로 계속 열린다.
 
 - 렌더러는 새 자원(`app.css`, `app.js`)과 함께 **옛 자원(`style.css`, `tabs.js`)도 계속 복사한다.** 그래서 옛 페이지 디자인이 깨지지 않는다.
 - 옛 페이지에 있는 `index.html` 링크는 홈으로 가고, `archive.html` 링크는 리다이렉트로 캘린더에 간다. 404는 생기지 않는다(SC3).

@@ -21,6 +21,7 @@ import dailynews.model.Story;
 import dailynews.render.CalendarRenderer;
 import dailynews.render.FeedRenderer;
 import dailynews.render.HomeRenderer;
+import dailynews.render.LegacyArchiveUpgrader;
 import dailynews.render.MarkdownRenderer;
 import dailynews.render.OutputPaths;
 import dailynews.render.ReadmeUpdater;
@@ -49,7 +50,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 뉴스레터 한 번 만들기(plan §3): 수집 → 정제 → IT 필터 → 클러스터 → 선정 → 요약 → 키워드 →
- * Markdown → 뉴스피드 → 보관 정리 → 캘린더 → 홈 → README(page-ui plan §3.1).
+ * Markdown → 뉴스피드 → 보관 정리 → 옛 날짜별 페이지 갱신 → 캘린더 → 홈 → README(page-ui plan §3.1, §3.3).
  * 네트워크({@link HttpFetcher})와 시각({@link Clock})을 주입받으므로 테스트에서 fixture와 고정 시각으로 실행할 수 있다.
  */
 public final class DailyNewsPipeline {
@@ -76,6 +77,7 @@ public final class DailyNewsPipeline {
     private final MarkdownRenderer markdownRenderer = new MarkdownRenderer();
     private final FeedRenderer feedRenderer;
     private final RetentionCleaner retentionCleaner;
+    private final LegacyArchiveUpgrader legacyArchiveUpgrader;
     private final CalendarRenderer calendarRenderer;
     private final HomeRenderer homeRenderer;
     private final ReadmeUpdater readmeUpdater;
@@ -95,6 +97,7 @@ public final class DailyNewsPipeline {
         this.keywordExtractor = new KeywordExtractor(analyzer::nouns, config.stopwords());
         this.feedRenderer = new FeedRenderer(config.repositoryUrl());
         this.retentionCleaner = new RetentionCleaner(config.retention());
+        this.legacyArchiveUpgrader = new LegacyArchiveUpgrader(feedRenderer);
         this.calendarRenderer = new CalendarRenderer(config.repositoryUrl(), config.retention().siteArchiveDays());
         this.homeRenderer = new HomeRenderer(config.repositoryUrl());
         this.readmeUpdater = new ReadmeUpdater(config.siteUrl());
@@ -146,6 +149,8 @@ public final class DailyNewsPipeline {
         feedRenderer.write(newsletter, paths);
         // 캘린더는 보관 정리 뒤에 만들어 남은 날짜만 보여 준다(FR-6.3).
         retentionCleaner.clean(paths, newsletter.date());
+        // 남은 옛 디자인 날짜별 페이지는 그날 Markdown으로 다시 만든다. 캘린더가 새 페이지의 dn:* 값을 읽게 그 앞에 둔다.
+        legacyArchiveUpgrader.upgrade(paths);
         calendarRenderer.write(paths, newsletter.generatedAt());
         homeRenderer.write(newsletter, paths);
         readmeUpdater.update(paths, newsletter);
