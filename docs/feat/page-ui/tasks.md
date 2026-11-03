@@ -54,7 +54,7 @@
 | T-027 | PR·병합·workflow_dispatch 배포·배포 후 점검 | G8 | Yes | In Progress | 2026-11-03: PR #9 병합, workflow_dispatch 배포 성공. 모든 경로 200·새 디자인·리다이렉트·캘린더 링크·옛 디자인 페이지 확인(qa-checklist 배포 후 점검). **남은 것**: 배포 사이트 Lighthouse 재측정 |
 | T-028 | 카드 등장 애니메이션(FR-3.8) | G9 | No | Done | 2026-11-03: `[data-reveal]` + IntersectionObserver. 첫 화면 밖 요소에만 `pending`을 붙여 JS 실패·reduced-motion이면 처음부터 보임(`html.js` 대신 이 방식을 씀: theme-init만 성공하고 app.js가 실패해도 숨지 않게). CLS 0 |
 | T-029 | 캘린더 키워드 팝오버(FR-4.8) | G9 | No | Done | 2026-11-03: 캘린더 칸 키워드 3개 팝오버(CSS `:hover`/`:focus-visible`, `aria-hidden`). 첫·마지막 열은 칸 가장자리에 맞춤, 터치 기기는 띄우지 않음. 360px 가로 스크롤 없음 |
-| T-031 | 옛 디자인 날짜별 페이지를 Markdown으로 새 디자인 갱신 | G9 | Yes | Done | 2026-11-04: 사용자 요청(캘린더의 지난 날짜도 today와 같은 UI). `MarkdownNewsletterReader`(Markdown → Newsletter, 왕복 동일·CRLF 허용), `LegacyArchiveUpgrader`(dn:selected 없는 페이지만, Markdown 없거나 깨지면 그대로), 파이프라인 보관 정리 뒤·캘린더 앞에 연결. 테스트 11개 추가(376개 통과). 배포 데이터 사본으로 10-29~11-02 5개 페이지 모두 변환·25건 일치 확인 |
+| T-031 | 옛 디자인 날짜별 페이지를 Markdown으로 새 디자인 갱신 | G9 | Yes | Done | 2026-11-04: 사용자 요청(캘린더의 지난 날짜도 today와 같은 UI). `MarkdownNewsletterReader`(Markdown → Newsletter, 왕복 동일·CRLF 허용), `LegacyArchiveUpgrader`(dn:selected 없는 페이지만, Markdown 없거나 깨지면 그대로), 파이프라인 보관 정리 뒤·캘린더 앞에 연결. 테스트 11개 추가(376개 통과). 배포 데이터 사본으로 10-29~11-02 5개 페이지 모두 변환·25건 일치 확인. PR #10 병합(`90c6efb`) → workflow_dispatch 배포: 로그에 5개 변환, 배포 사이트에서 10-29~11-04 모두 새 디자인·25건·이전/다음 이동·콘솔 오류 없음 |
 | T-030 | 전환 기간 종료 후 옛 자원 정리 | G9 | No | Todo | D+30 이후(새 디자인 첫 실행일 기준) 별도 브랜치에서 진행 |
 
 ---
