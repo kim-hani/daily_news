@@ -15,6 +15,8 @@ import dailynews.model.Story;
 import dailynews.model.Summary;
 import dailynews.model.SummaryOrigin;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -60,5 +62,24 @@ final class TestNewsletters {
 
         return new Newsletter(DATE, at(9, 0), List.of("연합뉴스", "동아일보", "경향신문"), sections,
                 List.of("SCM", "반도체", "국회"), new RunStats(512, 431, 5, List.of("khan/IT"), 4, 1));
+    }
+
+    private static final List<String> KEYWORD_POOL = List.of("AI", "트럼프", "반도체", "국회", "환율", "이란", "금리",
+            "의대", "전기차", "SCM", "날씨", "예산안", "대선");
+
+    /**
+     * 미리보기용으로 날짜만 바꾼 뉴스레터. 날짜마다 키워드 순서와 통계가 조금씩 다르고,
+     * {@code failed}가 true면 수집 실패 피드를 넣는다.
+     */
+    static Newsletter on(LocalDate date, int variant, boolean failed) {
+        Newsletter base = sample();
+        List<String> keywords = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            keywords.add(KEYWORD_POOL.get((variant + i) % KEYWORD_POOL.size()));
+        }
+        RunStats stats = new RunStats(1100 + variant * 7, 443 + variant * 3, base.stats().selected(),
+                failed ? List.of("khan/IT") : List.of(), 4, 1);
+        return new Newsletter(date, date.atTime(LocalTime.of(12, 3)).atZone(base.generatedAt().getZone()),
+                base.sourceNames(), base.sections(), keywords, stats);
     }
 }

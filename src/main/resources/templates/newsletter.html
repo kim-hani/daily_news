@@ -1,51 +1,65 @@
 <!DOCTYPE html>
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{layout :: head(${page.title()}, ${page.base()})}"></head>
-<body>
-<header th:replace="~{layout :: header(${page.base()}, ${page.dateLabel()})}"></header>
+<html lang="ko" class="no-js" xmlns:th="http://www.thymeleaf.org">
+<!--/* 오늘의 뉴스피드(today.html)와 날짜별 뉴스피드(archive/YYYY-MM-DD.html)가 함께 쓴다(spec FR-3, plan §6.2). */-->
+<head th:replace="~{layout :: head(${page.chrome()}, ${page.digest()})}"></head>
+<body class="bg-background text-foreground antialiased">
+<header th:replace="~{fragments/nav :: navbar(${page.chrome()})}"></header>
 
-<main id="main">
-    <section class="summary-bar" aria-label="오늘의 요약">
-        <p class="stats" th:text="${page.statsLine()}">수집 512건 → 중복 제거 431건 → 선정 25건</p>
-        <p class="failed" th:if="${!page.failedFeeds().isEmpty()}"
+<main id="main" class="mx-auto w-full max-w-6xl flex-1 px-4 pb-20 sm:px-6">
+    <section class="feed-header pt-10 pb-8 sm:pt-14" aria-labelledby="feed-title">
+        <h1 id="feed-title">
+            <span class="block text-sm font-semibold text-muted-foreground" th:text="${page.heading()}">오늘의 뉴스피드</span>
+            <time class="date mt-2 block text-4xl font-black tracking-tight tabular-nums sm:text-6xl"
+                  th:datetime="${page.isoDate()}" th:text="${page.dateLabel()}">2026-10-28 (수)</time>
+        </h1>
+        <p class="failed mt-5 max-w-xl rounded-lg border border-accent/40 px-3 py-2 text-sm text-foreground"
+           th:if="${!page.failedFeeds().isEmpty()}"
            th:text="|수집하지 못한 피드: ${#strings.listJoin(page.failedFeeds(), ', ')}|">수집하지 못한 피드</p>
-        <h2 class="visually-hidden">오늘의 키워드</h2>
-        <ul class="chips" th:if="${!page.keywords().isEmpty()}" aria-label="오늘의 키워드">
-            <li th:each="keyword : ${page.keywords()}" th:text="${keyword}">예산안</li>
-        </ul>
+        <div th:replace="~{fragments/feed :: stats(${page})}"></div>
+        <div th:replace="~{fragments/feed :: keywords(${page.keywords()})}"></div>
     </section>
 
-    <!-- JS가 없으면 각 탭은 해당 섹션으로 이동하는 앵커로 동작한다. tabs.js가 있으면 탭 전환으로 바뀐다. -->
-    <nav class="tabs" role="tablist" aria-label="카테고리">
-        <a th:each="section, status : ${page.sections()}" role="tab" th:id="|tab-${section.slug()}|"
-           th:href="|#${section.slug()}|" th:attr="aria-controls=${section.slug()},aria-selected=${status.first}"
-           th:text="|${section.emoji()} ${section.label()}|">🏛 정치</a>
+    <!--/* 날짜별 페이지만: 캘린더 링크는 항상 있고, 이전/다음은 app.js가 archive.json을 읽어 보관 중인 날짜만 채운다(FR-3.6). */-->
+    <nav th:if="${page.archive()}" class="day-nav mb-6 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-sm"
+         data-day-nav th:attr="data-date=${page.isoDate()},data-base=${page.chrome().base()}" aria-label="날짜 이동">
+        <a class="col-start-1 inline-flex min-h-11 items-center gap-1 justify-self-start rounded-md pr-2 font-medium tabular-nums hover:underline"
+           href="#" data-day-prev hidden>
+            <svg th:replace="~{fragments/icons :: chevron-left('size-4 shrink-0')}"></svg>
+            <span class="text-muted-foreground">이전</span> <span data-day-label></span>
+        </a>
+        <a class="col-start-2 inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-4 font-semibold transition-colors hover:bg-muted"
+           th:href="${page.chrome().base()} + 'calendar.html'">
+            <svg th:replace="~{fragments/icons :: calendar('size-4 shrink-0')}"></svg>
+            캘린더로 돌아가기
+        </a>
+        <a class="col-start-3 inline-flex min-h-11 items-center gap-1 justify-self-end rounded-md pl-2 font-medium tabular-nums hover:underline"
+           href="#" data-day-next hidden>
+            <span class="text-muted-foreground">다음</span> <span data-day-label></span>
+            <svg th:replace="~{fragments/icons :: chevron-right('size-4 shrink-0')}"></svg>
+        </a>
     </nav>
 
-    <section th:each="section : ${page.sections()}" th:id="${section.slug()}" class="category" role="tabpanel"
+    <div th:replace="~{fragments/feed :: tabs(${page.sections()})}"></div>
+
+    <section th:each="section : ${page.sections()}" th:id="${section.slug()}" class="category pt-8" role="tabpanel"
              th:attr="aria-labelledby=|tab-${section.slug()}|" tabindex="0">
-        <h2 th:text="|${section.emoji()} ${section.label()}|">🏛 정치</h2>
-        <p class="empty" th:if="${section.cards().isEmpty()}">오늘은 선정된 기사가 없습니다.</p>
-        <article class="card" th:each="card : ${section.cards()}">
-            <h3><a th:href="${card.url()}" th:text="${card.title()}">기사 제목</a></h3>
-            <p class="meta">
-                <span class="badge source" th:text="${card.sourceName()}">연합뉴스</span>
-                <time th:datetime="${card.isoTime()}" th:text="${card.time()}">08:12</time>
-                <span class="badge outlets" th:if="${card.outletCount() > 1}"
-                      th:text="|${card.outletCount()}개 언론사 보도|">3개 언론사 보도</span>
-            </p>
-            <blockquote th:if="${!card.summary().isEmpty()}">
-                <p th:text="${card.summary()}">요약</p>
-                <p class="origin" th:if="${card.rssSummary()}">RSS 요약</p>
-            </blockquote>
-            <p class="url"><a th:href="${card.url()}" th:text="${card.url()}">https://…</a></p>
-            <p class="related" th:if="${!card.related().isEmpty()}">같은 사안:
-                <a th:each="link : ${card.related()}" th:href="${link.url()}" th:text="${link.name()}">동아일보</a>
-            </p>
-        </article>
+        <h2 class="mb-4 flex items-center gap-2 text-xl font-black tracking-tight">
+            <span aria-hidden="true" th:text="${section.emoji()}">🏛</span>
+            <span th:text="${section.label()}">정치</span>
+            <span class="text-sm font-semibold text-muted-foreground tabular-nums"
+                  th:text="|${section.count()}건|">2건</span>
+        </h2>
+        <p class="empty rounded-card border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground"
+           th:if="${section.cards().isEmpty()}">오늘은 선정된 기사가 없습니다.</p>
+        <div class="cards mx-auto grid max-w-[680px] gap-4 lg:max-w-none lg:grid-cols-2"
+             th:unless="${section.cards().isEmpty()}">
+            <th:block th:each="card : ${section.cards()}">
+                <article th:replace="~{fragments/feed :: card(${card})}"></article>
+            </th:block>
+        </div>
     </section>
 </main>
 
-<footer th:replace="~{layout :: footer(${page.generatedAt()}, ${page.repositoryUrl()})}"></footer>
+<footer th:replace="~{layout :: footer(${page.chrome()})}"></footer>
 </body>
 </html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko" class="no-js" xmlns:th="http://www.thymeleaf.org">
+<!--/* 캘린더 뉴스피드(spec FR-4). JS가 없으면 모든 달이 쌓여 보이고(FR-4.6), app.js가 있으면 한 달씩 넘겨 본다.
+     JS가 있으면 app.js를 기다리지 않고 첫 화면부터 최신 달 하나만 그린다(.js 클래스 + calendar-month-latest, CLS). */-->
+<head th:replace="~{layout :: head(${calendar.chrome()}, null)}"></head>
+<body class="bg-background text-foreground antialiased">
+<header th:replace="~{fragments/nav :: navbar(${calendar.chrome()})}"></header>
+
+<main id="main" class="mx-auto w-full max-w-3xl flex-1 px-2 pb-20 sm:px-6">
+    <header class="px-2 pt-10 pb-6 sm:px-0 sm:pt-14">
+        <h1 class="text-4xl font-black tracking-tight sm:text-5xl">뉴스 캘린더</h1>
+        <p class="note mt-3 text-sm leading-relaxed text-muted-foreground">
+            웹에서는 최근 <span th:text="${calendar.keepDays()}">30</span>일치만 보관합니다.
+            그 이전 뉴스레터는 <a class="font-medium text-foreground underline underline-offset-4"
+                             th:href="${calendar.markdownArchiveUrl()}">저장소의 Markdown 아카이브</a>에서 볼 수 있습니다.
+        </p>
+    </header>
+
+    <p class="empty mx-2 rounded-card border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground"
+       th:if="${calendar.empty()}">아직 보관된 뉴스레터가 없습니다.</p>
+
+    <div th:unless="${calendar.empty()}"
+         class="calendar calendar-card rounded-card border border-border p-1 shadow-sm sm:p-6" data-calendar
+         th:attr="data-latest=${calendar.latestMonthId()}">
+        <div class="js-only mb-2 flex items-center justify-between gap-2 p-1 sm:p-0" data-calendar-nav>
+            <button type="button" data-calendar-prev aria-label="이전 달"
+                    class="grid size-11 place-items-center rounded-full border border-border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">
+                <svg th:replace="~{fragments/icons :: chevron-left('size-5')}"></svg>
+            </button>
+            <p class="text-lg font-bold tracking-tight" data-calendar-label aria-live="polite"></p>
+            <button type="button" data-calendar-next aria-label="다음 달"
+                    class="grid size-11 place-items-center rounded-full border border-border transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40">
+                <svg th:replace="~{fragments/icons :: chevron-right('size-5')}"></svg>
+            </button>
+        </div>
+        <th:block th:each="month : ${calendar.months()}">
+            <div th:replace="~{fragments/calendar :: month(${month}, ${calendar.weekdays()}, ${calendar.latestMonthId()})}"></div>
+        </th:block>
+        <ul class="legend mt-4 flex flex-wrap gap-x-5 gap-y-2 px-1 text-xs text-muted-foreground" aria-label="범례">
+            <li class="inline-flex items-center gap-2"><span class="calendar-day-latest size-4 rounded"
+                                                             aria-hidden="true"></span>최신 뉴스레터</li>
+            <li class="inline-flex items-center gap-2"><span class="size-1.5 rounded-full bg-foreground"
+                                                             aria-hidden="true"></span>뉴스레터 있음(누르면 이동)</li>
+            <li class="inline-flex items-center gap-2"><span class="size-4 rounded border border-dashed border-border"
+                                                             aria-hidden="true"></span>없음</li>
+        </ul>
+    </div>
+</main>
+
+<footer th:replace="~{layout :: footer(${calendar.chrome()})}"></footer>
+</body>
+</html>

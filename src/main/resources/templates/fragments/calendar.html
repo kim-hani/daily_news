@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--/* 월 달력 하나(new-calendar 겉모양: 흑백 팔레트, 최신 날 그라디언트, spring 이징). 원본의 날짜 선택 상태와
+       연·월 팝오버는 버리고 <table>로 다시 짰다(plan §6.2 캘린더). 활성 칸은 그날 뉴스피드로 가는 링크이고,
+       뉴스레터가 없는 날은 포커스되지 않는 글자다(FR-4.2). */-->
+<div th:fragment="month(month, weekdays, latestId)" class="calendar-month mt-2 [&+&]:mt-10" th:id="${month.id()}"
+     th:classappend="${month.id() == latestId} ? 'calendar-month-latest' : ''"
+     th:attr="data-calendar-month=${month.id()},data-label=${month.label()}">
+    <table class="w-full table-fixed border-separate border-spacing-px sm:border-spacing-1">
+        <caption class="pb-3 text-left text-lg font-bold tracking-tight" th:text="${month.label()}">2026년 10월</caption>
+        <thead>
+        <tr>
+            <th scope="col" th:each="weekday : ${weekdays}" th:abbr="${weekday}"
+                class="pb-2 text-xs font-medium text-muted-foreground" th:text="${weekday.substring(0, 1)}">일</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="week : ${month.weeks()}">
+            <td th:each="day : ${week}" class="relative p-0 align-top">
+                <a th:if="${day.href() != null}" th:href="${day.href()}" th:aria-label="${day.ariaLabel()}"
+                   class="calendar-day day-active relative flex min-h-11 flex-col items-center justify-center gap-1 rounded-lg px-0.5 py-1 font-bold transition-colors hover:bg-muted sm:min-h-20 sm:items-start sm:justify-start sm:gap-0.5 sm:p-2"
+                   th:classappend="${day.latest()} ? 'calendar-day-latest latest' : ''">
+                    <span class="text-sm tabular-nums sm:text-base" th:text="${day.dayOfMonth()}">31</span>
+                    <span class="calendar-dot size-1.5 rounded-full bg-foreground sm:hidden" aria-hidden="true"></span>
+                    <span class="calendar-meta hidden w-full truncate text-left text-[0.6875rem] font-semibold text-muted-foreground sm:block"
+                          th:if="${day.topKeyword() != null}" th:text="${day.topKeyword()}" aria-hidden="true">AI</span>
+                    <span class="calendar-meta hidden text-[0.6875rem] font-medium tabular-nums text-muted-foreground sm:block"
+                          th:if="${day.selected() > 0}" th:text="|${day.selected()}건|" aria-hidden="true">25건</span>
+                    <span class="calendar-popover flex flex-col gap-0.5 rounded-md border border-border bg-background px-2.5 py-2 text-left text-xs font-semibold text-foreground shadow-lg"
+                          th:if="${!day.previewKeywords().isEmpty()}" aria-hidden="true">
+                        <span class="text-[0.6875rem] font-medium text-muted-foreground">키워드</span>
+                        <span class="truncate" th:each="keyword : ${day.previewKeywords()}" th:text="${keyword}">AI</span>
+                    </span>
+                </a>
+                <span th:if="${day.dayOfMonth() > 0 and day.href() == null}"
+                      class="calendar-day day-off flex min-h-11 items-center justify-center rounded-lg px-0.5 py-1 text-sm tabular-nums text-muted-foreground sm:min-h-20 sm:items-start sm:justify-start sm:p-2 sm:text-base">
+                    <span aria-hidden="true" th:text="${day.dayOfMonth()}">15</span>
+                    <span class="visually-hidden" th:text="${day.ariaLabel()}">2026년 10월 15일 목요일, 뉴스레터 없음</span>
+                </span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+</body>
+</html>

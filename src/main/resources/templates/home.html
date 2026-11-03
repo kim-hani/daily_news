@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ko" class="no-js" xmlns:th="http://www.thymeleaf.org">
+<!--/* 홈(spec FR-2): 히어로 두 줄 + 버튼 2개 + 최신 날짜만 둔다. 키워드·통계·헤드라인은 뉴스피드에 있다(FR-2.5). */-->
+<head th:replace="~{layout :: head(${home.chrome()}, null)}"></head>
+<body class="bg-background text-foreground antialiased">
+<header th:replace="~{fragments/nav :: navbar(${home.chrome()})}"></header>
+
+<main id="main" class="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
+    <h1 th:replace="~{fragments/home :: hero}"></h1>
+    <div class="mt-10 flex flex-wrap items-center justify-center gap-3">
+        <a th:replace="~{fragments/home :: primary(${home.todayHref()}, 'Today')}"></a>
+        <a th:replace="~{fragments/home :: secondary(${home.calendarHref()}, 'Calendar')}"></a>
+    </div>
+    <p class="latest mt-6 text-sm text-muted-foreground"><span lang="en">Latest</span> · <time
+            class="tabular-nums" th:datetime="${home.isoDate()}" th:text="${home.latestLabel()}">2026-11-02 (월)</time></p>
+</main>
+
+<footer th:replace="~{layout :: footer(${home.chrome()})}"></footer>
+</body>
+</html>

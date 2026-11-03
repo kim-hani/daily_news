@@ -1,32 +1,41 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
-<!-- 페이지들이 함께 쓰는 조각. base는 site/ 루트까지의 상대 경로("" 또는 "../")다. -->
+<!-- 새 페이지들이 함께 쓰는 head와 푸터(plan §6.1). chrome.base()는 site/ 루트까지의 상대 경로("" 또는 "../")다. -->
 
-<head th:fragment="head(title, base)">
+<!--/* theme-init.js는 첫 화면 전에 배경을 정하므로 defer 없이 스타일시트보다 먼저 둔다(plan §5.2.1).
+       digest가 있으면(뉴스피드) 캘린더가 읽을 dn:* 메타 태그를 넣는다(plan §5.3). */-->
+<head th:fragment="head(chrome, digest)">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title th:text="${title}">Daily News</title>
-    <link rel="stylesheet" th:href="${base} + 'assets/style.css'">
-    <script th:src="${base} + 'assets/tabs.js'" defer></script>
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'none'; object-src 'none'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title th:text="${chrome.title()}">Daily News</title>
+    <meta name="description" th:content="${chrome.description()}">
+    <th:block th:if="${digest != null}">
+        <meta name="dn:date" th:content="${digest.date()}">
+        <meta name="dn:selected" th:content="${digest.selected()}">
+        <meta name="dn:keyword" th:each="keyword : ${digest.keywords()}" th:content="${keyword}">
+    </th:block>
+    <link rel="icon" href="data:,">
+    <script th:src="${chrome.base()} + 'assets/theme-init.js'"></script>
+    <link rel="stylesheet" th:href="${chrome.base()} + 'assets/fonts/pretendard.css'">
+    <link rel="stylesheet" th:href="${chrome.base()} + 'assets/app.css'">
+    <script th:src="${chrome.base()} + 'assets/app.js'" defer></script>
 </head>
 
-<header th:fragment="header(base, dateLabel)" class="site-header">
-    <p class="brand"><a th:href="${base} + 'index.html'">📰 Daily News</a></p>
-    <p class="date" th:if="${dateLabel != null}" th:text="${dateLabel}">2026-10-28 (수)</p>
-    <nav aria-label="사이트">
-        <a th:href="${base} + 'index.html'">오늘</a>
-        <a th:href="${base} + 'archive.html'">지난 뉴스레터</a>
-    </nav>
-</header>
-
-<footer th:fragment="footer(generatedAt, repositoryUrl)" class="site-footer">
-    <p>요약은 각 기사 원문의 앞부분(최대 200자)을 그대로 인용한 것이며 저작권은 각 언론사에 있습니다.
-        기사 전문은 원문 링크에서 읽어 주세요.</p>
-    <p>
-        <span th:text="|생성: ${generatedAt}|">생성: 2026-10-28 09:00 KST</span>
-        <span th:if="${repositoryUrl != null}"> · <a th:href="${repositoryUrl}">GitHub 저장소</a></span>
-    </p>
+<footer th:fragment="footer(chrome)" class="site-footer mt-auto border-t border-border">
+    <div class="mx-auto max-w-6xl space-y-2 px-4 py-8 text-xs leading-relaxed text-muted-foreground sm:px-6">
+        <p>요약은 각 기사 원문의 앞부분(최대 200자)을 그대로 인용한 것이며 저작권은 각 언론사에 있습니다.
+            기사 전문은 원문 링크에서 읽어 주세요.</p>
+        <p>
+            <span th:text="|생성: ${chrome.generatedAt()}|">생성: 2026-10-28 09:00 KST</span>
+            <span th:if="${chrome.repositoryUrl() != null}"> · <a
+                    class="underline underline-offset-4 transition-colors hover:text-foreground"
+                    th:href="${chrome.repositoryUrl()}">GitHub 저장소</a></span>
+        </p>
+    </div>
 </footer>
 
 </html>

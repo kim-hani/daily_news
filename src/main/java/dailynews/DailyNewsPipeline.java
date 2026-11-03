@@ -18,8 +18,9 @@ import dailynews.model.Newsletter;
 import dailynews.model.RunStats;
 import dailynews.model.Source;
 import dailynews.model.Story;
-import dailynews.render.ArchiveRenderer;
-import dailynews.render.HtmlRenderer;
+import dailynews.render.CalendarRenderer;
+import dailynews.render.FeedRenderer;
+import dailynews.render.HomeRenderer;
 import dailynews.render.MarkdownRenderer;
 import dailynews.render.OutputPaths;
 import dailynews.render.ReadmeUpdater;
@@ -48,7 +49,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * 뉴스레터 한 번 만들기(plan §3): 수집 → 정제 → IT 필터 → 클러스터 → 선정 → 요약 → 키워드 →
- * Markdown·HTML → 보관 정리 → 아카이브 목록 → README.
+ * Markdown → 뉴스피드 → 보관 정리 → 캘린더 → 홈 → README(page-ui plan §3.1).
  * 네트워크({@link HttpFetcher})와 시각({@link Clock})을 주입받으므로 테스트에서 fixture와 고정 시각으로 실행할 수 있다.
  */
 public final class DailyNewsPipeline {
@@ -73,9 +74,10 @@ public final class DailyNewsPipeline {
     private final SummaryService summaryService;
     private final KeywordExtractor keywordExtractor;
     private final MarkdownRenderer markdownRenderer = new MarkdownRenderer();
-    private final HtmlRenderer htmlRenderer;
+    private final FeedRenderer feedRenderer;
     private final RetentionCleaner retentionCleaner;
-    private final ArchiveRenderer archiveRenderer;
+    private final CalendarRenderer calendarRenderer;
+    private final HomeRenderer homeRenderer;
     private final ReadmeUpdater readmeUpdater;
 
     public DailyNewsPipeline(AppConfig config, HttpFetcher fetcher, Clock clock) {
@@ -91,9 +93,10 @@ public final class DailyNewsPipeline {
         this.summaryService = new SummaryService(fetcher, robots, new BodyExtractor(),
                 new LeadSummarizer(new SentenceSplitter()));
         this.keywordExtractor = new KeywordExtractor(analyzer::nouns, config.stopwords());
-        this.htmlRenderer = new HtmlRenderer(config.repositoryUrl());
+        this.feedRenderer = new FeedRenderer(config.repositoryUrl());
         this.retentionCleaner = new RetentionCleaner(config.retention());
-        this.archiveRenderer = new ArchiveRenderer(config.repositoryUrl(), config.retention().siteArchiveDays());
+        this.calendarRenderer = new CalendarRenderer(config.repositoryUrl(), config.retention().siteArchiveDays());
+        this.homeRenderer = new HomeRenderer(config.repositoryUrl());
         this.readmeUpdater = new ReadmeUpdater(config.siteUrl());
     }
 
@@ -140,11 +143,13 @@ public final class DailyNewsPipeline {
 
     private void write(Newsletter newsletter, OutputPaths paths) throws IOException {
         Path markdown = markdownRenderer.write(newsletter, paths);
-        htmlRenderer.write(newsletter, paths);
+        feedRenderer.write(newsletter, paths);
+        // 캘린더는 보관 정리 뒤에 만들어 남은 날짜만 보여 준다(FR-6.3).
         retentionCleaner.clean(paths, newsletter.date());
-        archiveRenderer.write(paths, newsletter.generatedAt());
+        calendarRenderer.write(paths, newsletter.generatedAt());
+        homeRenderer.write(newsletter, paths);
         readmeUpdater.update(paths, newsletter);
-        log.info("출력: {}, {}", paths.root().relativize(markdown), paths.root().relativize(paths.siteIndex()));
+        log.info("출력: {}, {}", paths.root().relativize(markdown), paths.root().relativize(paths.siteToday()));
     }
 
     private static void logSummary(Newsletter newsletter) {

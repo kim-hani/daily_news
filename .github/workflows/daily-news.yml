@@ -67,6 +67,12 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4   # 의존성 캐시(KOMORAN 포함)
 
+      # Tailwind 실행 파일(build.gradle downloadTailwind, SHA-256 검증)을 버전·해시가 바뀔 때만 다시 받는다.
+      - uses: actions/cache@v4
+        with:
+          path: build/tools/tailwind
+          key: tailwind-${{ runner.os }}-${{ hashFiles('gradle/tailwind.properties') }}
+
       - name: Generate newsletter
         run: ./gradlew run --no-daemon         # 수집 0건이면 종료 코드 1 → 이후 단계(커밋·배포) 생략 (NFR-2)
 

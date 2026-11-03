@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--/* 상단 내비게이션(navigation-menu-05: 아이콘 + 활성·hover 항목 아래 밑줄)과 배경 전환(theme-switcher-1).
+       드롭다운은 빼고 홈·Today·Calendar 세 링크만 둔다. 지금 페이지에는 aria-current="page"와 밑줄(FR-1.4).
+       배경 전환은 JS가 있어야 동작하므로 js-only로 JS가 없을 때만 숨긴다(FR-7.7). app.js를 기다렸다 보여 주면
+       메뉴 링크가 밀리므로(CLS) theme-init.js가 붙이는 .js 클래스로 첫 화면부터 그린다. */-->
+<header th:fragment="navbar(chrome)"
+        class="site-header sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-md">
+    <a class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground"
+       href="#main">본문으로 건너뛰기</a>
+    <div class="mx-auto flex h-14 max-w-6xl items-center gap-2 px-3 sm:gap-6 sm:px-6">
+        <a class="brand mr-auto inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-md text-base font-black tracking-tight"
+           th:href="${chrome.base()} + 'index.html'" th:aria-current="${chrome.ariaCurrent('HOME')}"
+           aria-label="Daily News 홈">
+            <span class="grid size-7 place-items-center rounded-md bg-primary text-[0.6875rem] text-primary-foreground"
+                  aria-hidden="true">DN</span>
+            <span class="hidden sm:inline" aria-hidden="true">Daily News</span>
+        </a>
+        <nav aria-label="사이트">
+            <ul class="flex items-center gap-3 sm:gap-8">
+                <li>
+                    <a class="nav-link relative inline-flex h-11 min-w-11 items-center justify-center gap-2.5 px-0.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:text-foreground before:absolute before:inset-x-0 before:bottom-1.5 before:h-[2px] before:scale-x-0 before:bg-primary before:transition-transform hover:before:scale-x-100 focus-visible:before:scale-x-100 aria-[current=page]:before:scale-x-100"
+                       lang="en" th:href="${chrome.base()} + 'today.html'"
+                       th:aria-current="${chrome.ariaCurrent('TODAY')}">
+                        <svg th:replace="~{fragments/icons :: newspaper('hidden size-5 shrink-0 sm:block')}"></svg>
+                        Today
+                    </a>
+                </li>
+                <li>
+                    <a class="nav-link relative inline-flex h-11 min-w-11 items-center justify-center gap-2.5 px-0.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground aria-[current=page]:text-foreground before:absolute before:inset-x-0 before:bottom-1.5 before:h-[2px] before:scale-x-0 before:bg-primary before:transition-transform hover:before:scale-x-100 focus-visible:before:scale-x-100 aria-[current=page]:before:scale-x-100"
+                       lang="en" th:href="${chrome.base()} + 'calendar.html'"
+                       th:aria-current="${chrome.ariaCurrent('CALENDAR')}">
+                        <svg th:replace="~{fragments/icons :: calendar('hidden size-5 shrink-0 sm:block')}"></svg>
+                        Calendar
+                    </a>
+                </li>
+            </ul>
+        </nav>
+        <fieldset class="theme-switcher js-only inline-flex items-center rounded-full bg-background ring-1 ring-inset ring-border"
+                  data-theme-switcher>
+            <legend class="visually-hidden">배경</legend>
+            <label class="theme-option relative flex size-11 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground">
+                <input class="visually-hidden" type="radio" name="dn-theme" value="light" aria-label="White">
+                <svg th:replace="~{fragments/icons :: sun('size-4')}"></svg>
+            </label>
+            <label class="theme-option relative flex size-11 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground">
+                <input class="visually-hidden" type="radio" name="dn-theme" value="dark" aria-label="Dark">
+                <svg th:replace="~{fragments/icons :: moon-star('size-4')}"></svg>
+            </label>
+            <label class="theme-option relative flex size-11 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground">
+                <input class="visually-hidden" type="radio" name="dn-theme" value="system" aria-label="System">
+                <svg th:replace="~{fragments/icons :: monitor('size-4')}"></svg>
+            </label>
+        </fieldset>
+    </div>
+</header>
+
+</body>
+</html>
