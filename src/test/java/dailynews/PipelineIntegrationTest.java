@@ -3,6 +3,7 @@ package dailynews;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import dailynews.config.ConfigLoader;
+import dailynews.model.Article;
 import dailynews.model.Category;
 import dailynews.model.NewsItem;
 import dailynews.model.Newsletter;
@@ -10,6 +11,7 @@ import dailynews.model.RunStats;
 import dailynews.model.SummaryOrigin;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -182,9 +184,31 @@ class PipelineIntegrationTest {
         }
     }
 
+    @Test
+    void 바로_전날_뉴스레터에_실린_기사는_다시_고르지_않는다_history_dedup_SC4() {
+        // 같은 fixture·같은 시각으로 이어서 실행한다: 2026-11-03 23:41 → 11-04 00:23처럼 수집 구간이 모두 겹치는 경우
+        Newsletter yesterday = run(DATE.minusDays(1)).newsletter();
+        DailyNewsPipeline.Result today = run(DATE);
+
+        assertThat(today.exitCode()).isZero();
+        assertThat(urls(yesterday)).isNotEmpty();
+        assertThat(urls(today.newsletter())).isNotEmpty().doesNotContainAnyElementsOf(urls(yesterday));
+    }
+
     private DailyNewsPipeline.Result run() {
+        return run(DATE);
+    }
+
+    private DailyNewsPipeline.Result run(LocalDate date) {
         return new DailyNewsPipeline(ConfigLoader.loadDefault(), FixtureWeb.withArticles(), FixtureWeb.CLOCK)
-                .run(DATE, root, false);
+                .run(date, root, false);
+    }
+
+    /** 원문 URL과 같은 사안 URL */
+    private static List<URI> urls(Newsletter newsletter) {
+        return newsletter.sections().values().stream().flatMap(List::stream).map(NewsItem::story)
+                .flatMap(story -> Stream.concat(Stream.of(story.representative()), story.related().stream()))
+                .map(Article::url).toList();
     }
 
     private Map<String, byte[]> snapshot() throws IOException {

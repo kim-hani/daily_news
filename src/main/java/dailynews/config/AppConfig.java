@@ -10,6 +10,7 @@ import java.util.Map;
  * @param requestDelayMillis 같은 호스트에 연속 요청할 때 간격
  * @param hostDelayMillis    호스트별로 따로 정한 요청 간격(소문자 호스트 → 밀리초). 없으면 {@code requestDelayMillis}
  * @param windowHours        최근 몇 시간 안의 기사만 쓸지
+ * @param historyDays        이전 며칠 치 뉴스레터에 실린 기사를 다시 고르지 않을지(0이면 끔)
  * @param perCategory        카테고리별 선정 기사 수
  * @param clusterThreshold   같은 사안으로 묶는 제목 유사도 기준(0 초과 1 이하)
  * @param stopwords          오늘의 키워드에서 뺄 단어
@@ -17,7 +18,7 @@ import java.util.Map;
  * @param repositoryUrl      저장소 주소(아카이브 페이지의 Markdown 링크)
  */
 public record AppConfig(String userAgent, int requestDelayMillis, Map<String, Integer> hostDelayMillis,
-                        int timeoutSeconds, int windowHours, int perCategory, double clusterThreshold,
+                        int timeoutSeconds, int windowHours, int historyDays, int perCategory, double clusterThreshold,
                         Retention retention, List<Source> sources, List<String> itKeywords, List<String> stopwords,
                         String siteUrl, String repositoryUrl) {
 

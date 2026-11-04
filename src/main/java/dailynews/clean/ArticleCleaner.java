@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
  * <ol>
  *   <li>URL을 정규화하고, 허용되지 않는 링크의 기사는 버린다.</li>
  *   <li>실행 시각 기준 {@code window} 안(경계 포함)에 발행된 기사만 남기고 미래 시각 기사는 버린다.</li>
+ *   <li>정규화한 URL이 지난 뉴스레터에 실린 URL이면 카테고리와 상관없이 버린다(history-dedup spec FR-2).</li>
  *   <li>같은 카테고리 안에서 URL이 같거나, 같은 언론사의 정규화 제목이 같으면 가장 이른 기사 하나만 남긴다.</li>
  * </ol>
  * 카테고리가 다른 같은 기사는 여기서 합치지 않는다. 카테고리 간 중복은 선정 단계에서 정리한다.
@@ -41,11 +42,19 @@ public final class ArticleCleaner {
     }
 
     public List<Article> clean(List<Article> articles) {
+        return clean(articles, Set.of());
+    }
+
+    /**
+     * @param publishedUrls 지난 뉴스레터에 실린 기사 URL(정규화된 URL). 이 URL의 기사는 후보에서 뺀다.
+     */
+    public List<Article> clean(List<Article> articles, Set<URI> publishedUrls) {
         Instant now = clock.instant();
         Instant from = now.minus(window);
         List<Article> candidates = new ArrayList<>();
         int invalidUrl = 0;
         int outOfWindow = 0;
+        int alreadyPublished = 0;
         for (Article article : articles) {
             Optional<URI> url = urlNormalizer.normalize(article.url(), article.source());
             if (url.isEmpty()) {
@@ -57,12 +66,16 @@ public final class ArticleCleaner {
                 outOfWindow++;
                 continue;
             }
+            if (publishedUrls.contains(url.get())) {
+                alreadyPublished++;
+                continue;
+            }
             candidates.add(article.withUrl(url.get()));
         }
 
         List<Article> kept = deduplicate(candidates);
-        log.info("정제: {}건 → {}건 (허용되지 않는 링크 {}, 기간 밖 {}, 중복 {})", articles.size(), kept.size(),
-                invalidUrl, outOfWindow, candidates.size() - kept.size());
+        log.info("정제: {}건 → {}건 (허용되지 않는 링크 {}, 기간 밖 {}, 지난 뉴스레터 {}, 중복 {})", articles.size(),
+                kept.size(), invalidUrl, outOfWindow, alreadyPublished, candidates.size() - kept.size());
         return kept;
     }
 

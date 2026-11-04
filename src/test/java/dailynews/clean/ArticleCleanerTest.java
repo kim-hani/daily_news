@@ -13,6 +13,7 @@ import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class ArticleCleanerTest {
@@ -84,5 +85,39 @@ class ArticleCleanerTest {
         Article c = article(YONHAP, Category.POLITICS, "다", "https://www.yna.co.kr/view/3", at(7, 0));
 
         assertThat(cleaner.clean(List.of(a, b, c))).extracting(Article::title).containsExactly("가", "나", "다");
+    }
+
+    @Test
+    void 지난_뉴스레터_URL과_같은_기사는_카테고리와_상관없이_뺀다_SC3() {
+        Set<URI> published = Set.of(URI.create("https://www.khan.co.kr/article/202610280800001"),
+                URI.create("https://www.donga.com/news/9"));
+        Article khanWithTracking = article(KHAN, Category.POLITICS, "경향 기사",
+                "https://www.khan.co.kr/article/202610280800001/?utm_source=khan_rss&utm_medium=rss", at(8, 0));
+        Article economy = article(DONGA, Category.ECONOMY, "반도체 수출 증가", "https://www.donga.com/news/9", at(8, 0));
+        Article it = article(DONGA, Category.IT, "반도체 수출 증가", "https://www.donga.com/news/9", at(8, 0));
+        Article fresh = article(YONHAP, Category.POLITICS, "새 기사", "https://www.yna.co.kr/view/AKR9", at(8, 0));
+
+        assertThat(cleaner.clean(List.of(khanWithTracking, economy, it, fresh), published))
+                .extracting(Article::title).containsExactly("새 기사");
+    }
+
+    @Test
+    void 제목이_같아도_URL이_다르면_빼지_않는다() {
+        Set<URI> published = Set.of(URI.create("https://www.yna.co.kr/view/AKR1"));
+        Article followUp = article(YONHAP, Category.POLITICS, "한미 국방장관, SCM 내년초 개최",
+                "https://www.yna.co.kr/view/AKR2", at(8, 0));
+
+        assertThat(cleaner.clean(List.of(followUp), published)).containsExactly(followUp);
+    }
+
+    @Test
+    void 지난_URL이_없으면_기존_정제와_결과가_같다() {
+        List<Article> articles = List.of(
+                article(YONHAP, Category.POLITICS, "가", "https://www.yna.co.kr/view/1", at(8, 0)),
+                article(YONHAP, Category.POLITICS, "가", "https://www.yna.co.kr/view/2", at(6, 0)),
+                article(KHAN, Category.SOCIETY, "나", "https://www.khan.co.kr/article/1/?utm_source=x", at(7, 0)),
+                article(DONGA, Category.ECONOMY, "다", "https://www.donga.com/news/3", at(9, 0).minusDays(2)));
+
+        assertThat(cleaner.clean(articles, Set.of())).isEqualTo(cleaner.clean(articles)).hasSize(2);
     }
 }
