@@ -71,6 +71,7 @@ class ConfigLoaderTest {
         assertThat(config.hostDelayMillis()).containsEntry("www.khan.co.kr", 10000);
         assertThat(config.timeoutSeconds()).isEqualTo(10);
         assertThat(config.windowHours()).isEqualTo(24);
+        assertThat(config.historyDays()).isEqualTo(7);
         assertThat(config.perCategory()).isEqualTo(5);
         assertThat(config.clusterThreshold()).isEqualTo(0.4);
         assertThat(config.retention()).isEqualTo(new AppConfig.Retention(30, 0));
@@ -136,6 +137,15 @@ class ConfigLoaderTest {
         assertThat(config.sources().getFirst().fetchBody()).isFalse();
     }
 
+    @Test
+    void historyDays를_생략하면_7일이고_0이면_끈다() throws IOException {
+        assertThat(ConfigLoader.load(write(VALID)).historyDays()).isEqualTo(7);
+
+        AppConfig off = ConfigLoader.load(write(VALID.replace("windowHours: 12\n", "windowHours: 12\nhistoryDays: 0\n")));
+
+        assertThat(off.historyDays()).isZero();
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidConfigs")
     void 잘못된_설정은_위치가_담긴_예외를_던진다(String description, String yaml, String expectedMessage)
@@ -183,6 +193,12 @@ class ConfigLoaderTest {
                 Arguments.of("newsDays 음수",
                         VALID.replace("newsDays: 0", "newsDays: -1"),
                         "retention.newsDays: 0 이상"),
+                Arguments.of("historyDays 음수",
+                        VALID.replace("windowHours: 12\n", "windowHours: 12\nhistoryDays: -1\n"),
+                        "historyDays: 0 이상"),
+                Arguments.of("historyDays가 정수가 아님",
+                        VALID.replace("windowHours: 12\n", "windowHours: 12\nhistoryDays: a\n"),
+                        "YAML을 해석할 수 없습니다"),
                 Arguments.of("clusterThreshold 1 초과",
                         VALID.replace("clusterThreshold: 0.5", "clusterThreshold: 1.5"),
                         "clusterThreshold: 0보다 크고 1 이하"),

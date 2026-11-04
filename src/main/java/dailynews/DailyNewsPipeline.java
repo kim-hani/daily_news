@@ -22,8 +22,10 @@ import dailynews.render.CalendarRenderer;
 import dailynews.render.FeedRenderer;
 import dailynews.render.HomeRenderer;
 import dailynews.render.LegacyArchiveUpgrader;
+import dailynews.render.MarkdownNewsletterReader;
 import dailynews.render.MarkdownRenderer;
 import dailynews.render.OutputPaths;
+import dailynews.render.PublishedHistory;
 import dailynews.render.ReadmeUpdater;
 import dailynews.render.RetentionCleaner;
 import dailynews.select.StoryClusterer;
@@ -36,6 +38,7 @@ import dailynews.summary.SentenceSplitter;
 import dailynews.summary.SummaryService;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
@@ -44,13 +47,14 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 뉴스레터 한 번 만들기(plan §3): 수집 → 정제 → IT 필터 → 클러스터 → 선정 → 요약 → 키워드 →
- * Markdown → 뉴스피드 → 보관 정리 → 옛 날짜별 페이지 갱신 → 캘린더 → 홈 → README(page-ui plan §3.1, §3.3).
+ * 뉴스레터 한 번 만들기(plan §3): 수집 → 지난 뉴스레터 URL 모으기 → 정제(지난 URL 빼기 포함, history-dedup plan §3.1) →
+ * IT 필터 → 클러스터 → 선정 → 요약 → 키워드 → Markdown → 뉴스피드 → 보관 정리 → 옛 날짜별 페이지 갱신 → 캘린더 → 홈 → README(page-ui plan §3.1, §3.3).
  * 네트워크({@link HttpFetcher})와 시각({@link Clock})을 주입받으므로 테스트에서 fixture와 고정 시각으로 실행할 수 있다.
  */
 public final class DailyNewsPipeline {
@@ -68,6 +72,7 @@ public final class DailyNewsPipeline {
     private final AppConfig config;
     private final Clock clock;
     private final FeedCollector collector;
+    private final PublishedHistory publishedHistory;
     private final ArticleCleaner cleaner;
     private final CategoryFilter categoryFilter;
     private final StoryClusterer clusterer;
@@ -88,6 +93,7 @@ public final class DailyNewsPipeline {
         KomoranAnalyzer analyzer = KomoranAnalyzer.getInstance();
         RobotsPolicy robots = new RobotsPolicy(fetcher);
         this.collector = new FeedCollector(fetcher, robots, new RssParser(KST));
+        this.publishedHistory = new PublishedHistory(config.historyDays(), new MarkdownNewsletterReader());
         this.cleaner = new ArticleCleaner(new UrlNormalizer(), clock, Duration.ofHours(config.windowHours()));
         this.categoryFilter = new CategoryFilter(config.itKeywords());
         this.clusterer = new StoryClusterer(new TitleSimilarity(analyzer), config.clusterThreshold());
@@ -111,13 +117,16 @@ public final class DailyNewsPipeline {
     public Result run(LocalDate date, Path root, boolean dryRun) {
         long start = System.nanoTime();
         ZonedDateTime now = ZonedDateTime.now(clock).withZoneSameInstant(KST);
+        OutputPaths paths = new OutputPaths(root);
 
         CollectResult collected = collector.collect(config.sources());
         if (collected.articles().isEmpty()) {
             log.error("수집한 기사가 없어 뉴스레터를 만들지 않습니다(실패 피드 {}개)", collected.failedFeeds().size());
             return new Result(EXIT_FAILURE, null);
         }
-        List<Article> cleaned = cleaner.clean(collected.articles());
+        // --dry-run에서도 읽기만 하므로 똑같이 뺀다. 당일 파일은 읽지 않아 같은 날 재실행 결과가 같다(FR-7.4).
+        Set<URI> published = publishedHistory.urlsBefore(paths, date);
+        List<Article> cleaned = cleaner.clean(collected.articles(), published);
         List<Article> candidates = categoryFilter.filter(cleaned);
         Map<Category, List<Story>> stories = selector.select(clusterer.cluster(candidates), now);
         SummaryService.Result summaries = summaryService.summarize(stories);
@@ -134,7 +143,7 @@ public final class DailyNewsPipeline {
             log.info("--dry-run: 파일을 쓰지 않습니다");
         } else {
             try {
-                write(newsletter, new OutputPaths(root));
+                write(newsletter, paths);
             } catch (IOException | UncheckedIOException e) {
                 log.error("출력 실패", e);
                 return new Result(EXIT_OUTPUT_ERROR, newsletter);

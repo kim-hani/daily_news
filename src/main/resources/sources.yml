@@ -9,6 +9,7 @@ hostDelayMillis:              # 호스트별 간격(기본값보다 길게 둘 �
   www.khan.co.kr: 10000       # 경향신문은 1초 간격 연속 요청에 403을 돌려줌(2026-10-28 로컬 확인)
 timeoutSeconds: 10
 windowHours: 24               # 최근 몇 시간 안의 기사만 쓸지
+historyDays: 7                # 이전 며칠 치 뉴스레터(news/)에 실린 기사는 다시 고르지 않음(0 = 끔, 생략하면 7)
 perCategory: 5                # 카테고리별 선정 기사 수
 clusterThreshold: 0.4         # 같은 사안으로 묶는 제목 유사도 기준(0 초과 1 이하)
 

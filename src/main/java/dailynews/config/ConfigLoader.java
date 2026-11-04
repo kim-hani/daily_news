@@ -31,6 +31,8 @@ import java.util.regex.PatternSyntaxException;
 public final class ConfigLoader {
 
     static final String DEFAULT_RESOURCE = "sources.yml";
+    /** historyDays를 생략했을 때 값(옛 설정 파일 호환) */
+    static final int DEFAULT_HISTORY_DAYS = 7;
 
     private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
     private static final Pattern DOMAIN = Pattern.compile("(?i)[a-z0-9-]+(\\.[a-z0-9-]+)+");
@@ -86,6 +88,8 @@ public final class ConfigLoader {
         Map<String, Integer> hostDelayMillis = toHostDelays(raw.hostDelayMillis());
         int timeoutSeconds = requireAtLeast(raw.timeoutSeconds(), 1, "timeoutSeconds");
         int windowHours = requireAtLeast(raw.windowHours(), 1, "windowHours");
+        int historyDays = raw.historyDays() == null ? DEFAULT_HISTORY_DAYS
+                : requireAtLeast(raw.historyDays(), 0, "historyDays");
         int perCategory = requireAtLeast(raw.perCategory(), 1, "perCategory");
         double clusterThreshold = requireThreshold(raw.clusterThreshold(), "clusterThreshold");
         AppConfig.Retention retention = toRetention(raw.retention());
@@ -94,7 +98,7 @@ public final class ConfigLoader {
         List<String> stopwords = textList(raw.stopwords(), "stopwords");
         String siteUrl = toHttpUri(raw.siteUrl(), "siteUrl").toString();
         String repositoryUrl = toHttpUri(raw.repositoryUrl(), "repositoryUrl").toString();
-        return new AppConfig(userAgent, requestDelayMillis, hostDelayMillis, timeoutSeconds, windowHours, perCategory,
+        return new AppConfig(userAgent, requestDelayMillis, hostDelayMillis, timeoutSeconds, windowHours, historyDays, perCategory,
                 clusterThreshold, retention, sources, itKeywords, stopwords, siteUrl, repositoryUrl);
     }
 
@@ -273,7 +277,7 @@ public final class ConfigLoader {
     /** sources.yml 최상위 구조 */
     private record RawConfig(String userAgent, Integer requestDelayMillis, Map<String, Integer> hostDelayMillis,
                              Integer timeoutSeconds,
-                             Integer windowHours, Integer perCategory, Double clusterThreshold,
+                             Integer windowHours, Integer historyDays, Integer perCategory, Double clusterThreshold,
                              RawRetention retention, List<SourceConfig> sources,
                              List<String> itKeywords, List<String> stopwords, String siteUrl,
                              String repositoryUrl) {
